@@ -46,6 +46,8 @@ npm run build         # 等价于 <cli> build-npm --project miniprogram
 > **实测结论（2026-08-24，客户端开发）**：查询官方下载数据源 `https://devtools.wxqcloud.qq.com.cn/WechatWebDev/nightly/versions/config.json`，当前 **stable = 2.02.2608040（2026-08-18）**，官方下载矩阵仅 **Windows x64 / macOS x64(.pkg) / macOS ARM64(.pkg)**；官方 CLI 文档（`devtools/cli.html`）也只列 macOS 与 Windows 两个 CLI 路径。**当前世代 DevTools 无一方 Linux 安装包**（2.01 之前的旧世代曾提供 Linux `.deb`）。
 
 据此，在**本 Linux 机**上落地 DevTools 有两条路径：
+
+> **已交叉验证（2026-08-24）**：遍历官方全部渠道（stable / rc / nightly / nightly-old / legacy 1.05）的下载矩阵、`download_redirect` 端点的 `type` 取值（`x64`/`ia32`/`darwin`/`arm64`，**无 `linux`**）、可解析的 release 目录（2.02 / 2.01 / 晚 1.06 共用 `be1ec64c…` 目录，均无 `.deb`）与版本历史（`history_stable.json`，含 1.06 系列与 2020–2021 `YYYY.MM.DD` 系列）——**当前世代官方无任何 Linux 安装包**。Linux `.deb` 属旧世代（≤1.06 / 2020–2021）产物；其**确切 `.deb` URL/版本待 owner 确认**（旧世代 release 目录 hash 无法经 `download_redirect` 解析，盲探 dldir1 未命中）。确认后立即下载 → 校验（ar/deb magic）→ 安装 → 锁定。
 - **路径 A（本仓库脚本默认目标）**：安装一份可用的 **Linux DevTools `.deb`（旧世代 / 社区维护）**，CLI 位于 `~/.wechatwebdevtools/cli`，并用 `DEVTOOLS_CLI` 显式锁定，锁定版本记入 3.4。
 - **路径 B**：DevTools GUI 跑在 **macOS 主机**（2.02 stable，官方首推平台）；Linux 机只承载代码 / mock / e2e，`npm run build` 通过 `DEVTOOLS_CLI` 指向 macOS 上的 CLI（或改为 macOS 上执行）。
 
