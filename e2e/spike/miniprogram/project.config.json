@@ -1,0 +1,16 @@
+{
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "condition": {},
+  "libVersion": "2.25.3",
+  "miniprogramRoot": "./",
+  "projectname": "anim-spike",
+  "setting": {
+    "enhance": true,
+    "es6": true,
+    "minified": true,
+    "postcss": true,
+    "urlCheck": false,
+    "minifyWXML": true
+  }
+}

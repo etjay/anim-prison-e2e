@@ -27,6 +27,13 @@ module.exports = {
     requirePlugin: 'readonly',
   },
   extends: ['eslint:recommended'],
+  overrides: [
+    // Jest 单测（e2e/）：jest 全局（describe/test/expect/beforeAll 等）。
+    {
+      files: ['e2e/**/*.test.js'],
+      env: { jest: true, node: true },
+    },
+  ],
   rules: {
     semi: ['error', 'always'],
     'no-unused-vars': ['warn', { args: 'after-used', argsIgnorePattern: '^_' }],

@@ -1,0 +1,7 @@
+.container {
+  padding: 32rpx;
+}
+
+.hello {
+  font-size: 40rpx;
+}

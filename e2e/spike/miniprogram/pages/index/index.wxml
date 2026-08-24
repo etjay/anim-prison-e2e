@@ -1,0 +1,4 @@
+<view class="container">
+  <text class="hello">{{greeting}}</text>
+  <button class="tap-btn" bindtap="onTap">Tap {{count}}</button>
+</view>

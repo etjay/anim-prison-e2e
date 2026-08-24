@@ -8,9 +8,12 @@
     "lint:miniprogram": "eslint miniprogram scripts --ext .js",
     "build": "node scripts/devtools-build.js",
     "build:devtools": "node scripts/devtools-build.js",
-    "devtools": "node scripts/devtools-build.js --open"
+    "devtools": "node scripts/devtools-build.js --open",
+    "e2e:spike": "node e2e/spike/ensure-devtools.js && DISPLAY=${WDT_DISPLAY:-:97} jest e2e/spike/spike.test.js --runInBand --forceExit"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "eslint": "^8.57.0",
+    "jest": "^30.4.2",
+    "miniprogram-automator": "^0.12.1"
   }
 }
