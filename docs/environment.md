@@ -43,11 +43,18 @@ npm run build         # 等价于 <cli> build-npm --project miniprogram
 
 ### 3.1 安装
 
-- **macOS（需求设计默认平台）**：从官方下载页下载 stable 版 `.dmg`，拖入 `Applications`。
-- **Linux**：下载 stable 版 `.deb`，安装后 CLI 位于 `~/.wechatwebdevtools/cli`。
-- **Windows**：安装后 CLI 位于 `C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat`。
+> **实测结论（2026-08-24，客户端开发）**：查询官方下载数据源 `https://devtools.wxqcloud.qq.com.cn/WechatWebDev/nightly/versions/config.json`，当前 **stable = 2.02.2608040（2026-08-18）**，官方下载矩阵仅 **Windows x64 / macOS x64(.pkg) / macOS ARM64(.pkg)**；官方 CLI 文档（`devtools/cli.html`）也只列 macOS 与 Windows 两个 CLI 路径。**当前世代 DevTools 无一方 Linux 安装包**（2.01 之前的旧世代曾提供 Linux `.deb`）。
 
-> ⚠️ 本仓库当前 CI/构建机为 **Linux**（见“假设清单”），与需求设计默认的 macOS 不同。脚本已做跨平台 CLI 路径推断，可用 `DEVTOOLS_CLI` 环境变量显式覆盖，避免版本/路径漂移。
+据此，在**本 Linux 机**上落地 DevTools 有两条路径：
+- **路径 A（本仓库脚本默认目标）**：安装一份可用的 **Linux DevTools `.deb`（旧世代 / 社区维护）**，CLI 位于 `~/.wechatwebdevtools/cli`，并用 `DEVTOOLS_CLI` 显式锁定，锁定版本记入 3.4。
+- **路径 B**：DevTools GUI 跑在 **macOS 主机**（2.02 stable，官方首推平台）；Linux 机只承载代码 / mock / e2e，`npm run build` 通过 `DEVTOOLS_CLI` 指向 macOS 上的 CLI（或改为 macOS 上执行）。
+
+各平台官方安装包：
+- **macOS（官方首推）**：stable 2.02.2608040 `.pkg`（下载页/`download_redirect?type=darwin`）。
+- **Windows**：stable `.exe`（`download_redirect?type=x64`）。
+- **Linux**：当前无一方 stable 包 → 用路径 A 的旧世代/社区 `.deb`，或路径 B 用 macOS。
+
+> ⚠️ 本仓库 CI/构建机为 **Linux**（owner 已确认 dev/test 环境 = 本 Linux 机，见 issue 评论）。脚本已做跨平台 CLI 路径推断，可用 `DEVTOOLS_CLI` 环境变量显式覆盖，避免版本/路径漂移。
 
 ### 3.2 登录
 
@@ -57,11 +64,11 @@ npm run build         # 等价于 <cli> build-npm --project miniprogram
 
 ### 3.3 CLI 路径
 
-| 平台 | 默认 CLI 路径 |
-|------|--------------|
-| macOS | `/Applications/wechatwebdevtools.app/Contents/MacOS/cli` |
-| Linux | `~/.wechatwebdevtools/cli` |
-| Windows | `C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat` |
+| 平台 | 默认 CLI 路径 | 官方文档 |
+|------|--------------|---------|
+| macOS | `/Applications/wechatwebdevtools.app/Contents/MacOS/cli` | 有（`<安装路径>/Contents/MacOS/cli`） |
+| Windows | `C:\Program Files (x86)\Tencent\微信web开发者工具\cli.bat` | 有（`<安装路径>/cli.bat`） |
+| Linux | `~/.wechatwebdevtools/cli` | 当前世代未列（旧世代 Linux 包通用路径；需 `DEVTOOLS_CLI` 显式锁定） |
 
 `scripts/devtools-build.js` 的解析优先级：
 1. 环境变量 `DEVTOOLS_CLI`（推荐显式指定，最稳）；
@@ -73,13 +80,15 @@ npm run build         # 等价于 <cli> build-npm --project miniprogram
 
 | 项 | 值 | 记录时间 | 记录人 |
 |----|----|---------|--------|
-| DevTools 版本 | **待本机安装后回填**（stable，安装后 `关于` 中记录版本号） | 2026-08-24 | 客户端开发 |
-| DevTools CLI 路径 | 见 3.3；当前构建机为 Linux → `~/.wechatwebdevtools/cli`（本机未安装，待 T1.1 环境落地后确认） | 2026-08-24 | 客户端开发 |
+| DevTools 当前 stable 版本（官方数据源） | **2.02.2608040**（发布 2026-08-18；官方矩阵 Win/macOS，无一方 Linux 包） | 2026-08-24 | 客户端开发 |
+| 本机锁定使用的 DevTools 版本 | **待定**：取决于选 3.1 路径 A（旧世代/社区 Linux `.deb`，锁定其版本）或路径 B（macOS 2.02.2608040）；确定后回填 | 2026-08-24 | 客户端开发 |
+| DevTools CLI 路径 | macOS 见 3.3；Linux → `~/.wechatwebdevtools/cli`（待安装后 `DEVTOOLS_CLI` 锁定并确认存在） | 2026-08-24 | 客户端开发 |
+| 登录状态 | 待 DevTools 安装后：启动 → 扫码登录 → CLI 复用登录态（`cli` 首启需 GUI 登录一次） | 2026-08-24 | 客户端开发 |
 | Node.js | v22.22.1 | 2026-08-24 | 客户端开发 |
 | npm | 10.9.4 | 2026-08-24 | 客户端开发 |
-| 构建机 OS | Linux（Ubuntu, x86_64） | 2026-08-24 | 客户端开发 |
+| 构建/开发机 OS | Linux（Ubuntu, x86_64）——owner 已确认为 dev/test 运行机 | 2026-08-24 | 客户端开发 |
 
-> 需求设计锁定 “DevTools stable 锁版本”。安装后请将具体版本号回填上表并 `git commit`，供 stage2/3 与 CI 对齐。
+> 需求设计锁定 “DevTools stable 锁版本”。**官方 stable 当前 = 2.02.2608040**（Win/macOS）。Linux 机落地需按 3.1 路径 A/B 选定具体构建后，回填“本机锁定使用的 DevTools 版本”并 `git commit`，供 stage2/3 与 CI 对齐。
 
 ## 4. 多环境切换（baseURL）
 
@@ -99,10 +108,11 @@ const BASE_URLS = {
 
 ## 5. 假设清单（文档化，Q3 两项）
 
-1. **开发机 OS**：需求设计默认 macOS；**当前构建机为 Linux**（已做跨平台适配，`DEVTOOLS_CLI` 可覆盖）。
-2. **无现成 CI 平台**：stage3 默认 GitHub Actions；CI 阶段（T3.x）不在本期验收。
-3. 其余：Node ≥ 18；DevTools stable 锁版本；原生小程序；一期不上真机。
-4. 客户端与 mock 的接口契约见 `mock-server/README.md`（由 T1.2 实现，错误码约定已在客户端 `bind` / `home` / `canteen` 页面对齐）。
+1. **开发机 OS**：owner 已确认 dev/test 运行机 = **本 Linux 机**（Ubuntu x86_64, Node v22.22.1 / npm 10.9.4）。已做跨平台适配，`DEVTOOLS_CLI` 可覆盖。
+2. **DevTools 平台矩阵**：官方当前 stable 2.02.2608040 仅 **Win/macOS**，无一方 Linux 包（见 3.1）→ Linux 机按 3.1 路径 A（旧世代/社区 Linux `.deb` + `DEVTOOLS_CLI` 锁定）或路径 B（macOS 主机跑 DevTools）落地；具体版本锁定后回填 3.4。
+3. **无现成 CI 平台**：stage3 默认 GitHub Actions；CI 阶段（T3.x）不在本期验收。
+4. 其余：Node ≥ 18；DevTools stable 锁版本；原生小程序；一期不上真机。
+5. 客户端与 mock 的接口契约见 `mock-server/README.md`（由 T1.2 实现，错误码约定已在客户端 `bind` / `home` / `canteen` 页面对齐）。
 
 ## 6. 故障排查
 
