@@ -28,6 +28,17 @@ module.exports = {
   },
   extends: ['eslint:recommended'],
   overrides: [
+    // E2E helper 层：runtime.evaluate 的函数体在小程序 app 上下文执行，
+    // 但 ESLint 在 Node 作用域检查它，需声明小程序全局。
+    {
+      files: ['e2e/helpers/**/*.js'],
+      globals: {
+        getCurrentPages: 'readonly',
+        getApp: 'readonly',
+        // helper 在 Jest 测试文件上下文中加载，使用运行时 API（jest.retryTimes）
+        jest: 'readonly',
+      },
+    },
     // Jest 单测（e2e/）：jest 全局（describe/test/expect/beforeAll 等）。
     {
       files: ['e2e/**/*.test.js'],
