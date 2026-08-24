@@ -1,0 +1,10 @@
+.rating {
+  color: #f39c12;
+  font-weight: 700;
+  font-size: 32rpx;
+}
+.success {
+  color: #4a7c59;
+  font-size: 26rpx;
+  margin-top: 16rpx;
+}

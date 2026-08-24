@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="card">
+    <view class="title">食堂</view>
+    <view class="subtitle">给 {{animalName}} 提供一次互动（喂食）。</view>
+    <view class="btn {{submitting ? 'btn--disabled' : ''}}" bindtap="onFeed">
+      {{submitting ? '提交中…' : '🍲 喂食一次'}}
+    </view>
+    <view wx:if="{{resultMsg}}" class="success">{{resultMsg}}</view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+  </view>
+
+  <view class="card" wx:if="{{rating}}">
+    <view class="title">评分 / 满意度</view>
+    <view class="row">
+      <text>综合评分</text>
+      <text class="rating">{{rating.score}}</text>
+    </view>
+    <view class="row">
+      <text>满意度</text>
+      <text>{{rating.satisfaction}}%</text>
+    </view>
+    <view class="row">
+      <text>互动次数</text>
+      <text>{{rating.count}}</text>
+    </view>
+  </view>
+</view>

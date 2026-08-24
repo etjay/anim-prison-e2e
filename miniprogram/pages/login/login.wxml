@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="card">
+    <view class="title">动物监狱</view>
+    <view class="subtitle">登录以继续经营你的动物监狱（E2E 骨架 · stub 登录）</view>
+  </view>
+
+  <view class="card">
+    <view class="row">
+      <text>当前环境</text>
+      <text class="env-tag">{{env}}</text>
+    </view>
+    <view class="row">
+      <text>后端 baseURL</text>
+      <text class="mono">{{baseURL}}</text>
+    </view>
+  </view>
+
+  <view class="btn {{loading ? 'btn--disabled' : ''}}" bindtap="onLogin">
+    {{loading ? '登录中…' : '微信一键登录'}}
+  </view>
+
+  <block wx:if="{{ok}}">
+    <view class="hint">登录成功，即将按绑定状态跳转…</view>
+  </block>
+  <block wx:if="{{error}}">
+    <view class="error">{{error}}</view>
+    <view class="hint">骨架期可手动走通（未启动 mock-server 时）：</view>
+    <view class="btn btn--ghost" bindtap="gotoWelcome">进入欢迎页（未绑定）</view>
+    <view class="btn btn--ghost" bindtap="gotoHome">进入首页（已绑定）</view>
+  </block>
+</view>

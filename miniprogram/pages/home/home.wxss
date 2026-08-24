@@ -1,0 +1,20 @@
+.animal {
+  display: flex;
+  align-items: center;
+}
+.animal-emoji {
+  font-size: 80rpx;
+  margin-right: 24rpx;
+}
+.animal-name {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+.animal-species {
+  font-size: 24rpx;
+  color: #999;
+}
+.mood {
+  color: #4a7c59;
+  font-size: 26rpx;
+}

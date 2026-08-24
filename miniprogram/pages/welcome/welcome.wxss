@@ -1,0 +1,7 @@
+.welcome-card {
+  text-align: center;
+}
+.emoji {
+  font-size: 96rpx;
+  margin-bottom: 16rpx;
+}

@@ -1,0 +1,27 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# 构建 / 产物
+miniprogram/miniprogram_npm/
+dist/
+build/
+
+# DevTools
+miniprogram/project.private.config.json
+# 注：project.private.config.json 已被 gitignore（个人本地配置）；
+# 仓库中的模板副本见下方例外。
+!miniprogram/project.private.config.json
+
+# E2E 产物（stage2 使用）
+e2e/screenshots/
+e2e/reports/
+e2e/artifacts/
+test-results/
+
+# 日志 / 临时
+*.log
+.DS_Store
+.env
+.env.local

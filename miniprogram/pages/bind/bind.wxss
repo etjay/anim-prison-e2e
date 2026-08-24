@@ -1,0 +1,8 @@
+.code-input {
+  margin-top: 24rpx;
+  border: 2rpx solid #dfe7e0;
+  border-radius: 14rpx;
+  padding: 20rpx;
+  font-size: 30rpx;
+  background: #fafcfa;
+}

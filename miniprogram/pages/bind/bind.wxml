@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="card">
+    <view class="title">绑定小动物</view>
+    <view class="subtitle">输入你的专属邀请码，完成一次性绑定（每个邀请码仅可绑定一次）。</view>
+    <input
+      class="code-input"
+      placeholder="请输入邀请码，如 ANIM-001"
+      value="{{code}}"
+      confirm-type="done"
+      bindinput="onCodeInput"
+      bindconfirm="onConfirm"
+    />
+  </view>
+
+  <view class="btn {{loading ? 'btn--disabled' : ''}}" bindtap="onConfirm">
+    {{loading ? '绑定中…' : '确认绑定'}}
+  </view>
+
+  <block wx:if="{{error}}">
+    <view class="error">{{error}}</view>
+    <view class="hint">（骨架期离线走通）</view>
+    <view class="btn btn--ghost" bindtap="gotoHome">直接进入首页</view>
+  </block>
+</view>

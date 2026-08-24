@@ -1,0 +1,16 @@
+{
+  "name": "anim-prison-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "动物监狱经营小程序 E2E 开发验证环境 monorepo（一期）",
+  "scripts": {
+    "lint": "eslint . --ext .js",
+    "lint:miniprogram": "eslint miniprogram scripts --ext .js",
+    "build": "node scripts/devtools-build.js",
+    "build:devtools": "node scripts/devtools-build.js",
+    "devtools": "node scripts/devtools-build.js --open"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

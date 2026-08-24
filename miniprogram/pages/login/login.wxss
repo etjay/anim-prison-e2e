@@ -1,0 +1,8 @@
+.env-tag {
+  color: #4a7c59;
+  font-weight: 600;
+}
+.mono {
+  color: #666;
+  font-size: 24rpx;
+}

@@ -1,0 +1,26 @@
+<view class="container">
+  <view class="card" wx:if="{{animal}}">
+    <view class="row">
+      <view class="animal">
+        <text class="animal-emoji">{{animal.emoji}}</text>
+        <view>
+          <view class="animal-name">{{animal.name}}</view>
+          <view class="animal-species">物种：{{animal.species}}</view>
+        </view>
+      </view>
+      <view class="mood">心情 {{animal.mood}}</view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{!loading}}">
+    <view class="title">监狱地图</view>
+    <view class="map-grid">
+      <view class="map-cell" wx:for="{{cells}}" wx:key="index">{{item}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{error}}" class="hint">{{error}}</view>
+
+  <view class="btn" bindtap="gotoCanteen">去食堂互动</view>
+  <view class="hint" bindtap="gotoLogin">重新登录</view>
+</view>
