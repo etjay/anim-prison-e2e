@@ -5,8 +5,11 @@
 // renderer（spike 补丁 D：`cli quit` 杀不掉的孤儿 renderer 会占住旧 auto
 // tunnel 端口，影响下一轮 suite）。Xvfb 保留（跨 suite 复用，无副作用）。
 const { stopAllIde } = require('./tools/ensure-devtools');
+const { stopRecording } = require('./tools/record');
 
 module.exports = async function globalTeardown() {
+  // 先停全程录像（E2E_RECORD=1 时）再杀 IDE，避免录像以进程被杀的黑屏收尾。
+  await stopRecording();
   stopAllIde();
   console.log('[globalTeardown] DevTools 已关闭（Xvfb 保留复用）');
 };

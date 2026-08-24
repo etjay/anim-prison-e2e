@@ -24,6 +24,9 @@ e2e/
     welcome.test.js     #   T2.2 验收琐碎用例：打开欢迎页并断言核心元素
   tools/
     ensure-devtools.js  #   环境引导：Xvfb + DevTools IDE 干净重启（globalSetup 与手动预检共用）
+    record.js           #   全程录像（E2E_RECORD=1 开启）：ffmpeg x11grab 录 :97 → e2e/artifacts/*.mp4
+    record.setup.js     #   录像 globalSetup 独立入口（e2e:spike 挂接用）
+    record.teardown.js  #   录像 globalTeardown 独立入口（e2e:spike 挂接用）
   spike/                # T2.1 spike（历史留档，独立入口 npm run e2e:spike）
   screenshots/          # 用例后状态截图（gitignore，失败现场 / job artifact 来源）
 ```
@@ -38,6 +41,14 @@ npm run e2e            # 单一入口：globalSetup 干净启 IDE → 跑 e2e/sm
 
 - 环境变量：`WDT_DISPLAY`（Xvfb display，默认 `:97`）、`DEVTOOLS_CLI` / `DEVTOOLS_ROOT`
   （DevTools 路径覆盖）、`E2E_AUTO_PORT`（auto 隧道端口，默认 `9420`）；
+- **全程录像（T3.x CI 排查用，可选）**：`E2E_RECORD=1 npm run e2e`（`e2e:spike` 同理）
+  会在测试运行期间用 ffmpeg x11grab 全程录 `WDT_DISPLAY` 桌面，产物
+  `e2e/artifacts/run-<时间戳>.mp4`（~15fps，40-60s 约几 MB，gitignore）。默认关闭零开销；
+  录像从 globalSetup 的 Xvfb 启动开始（覆盖 IDE 冷启 + 打开工程编译 + 全程测试），
+  在 globalTeardown 杀 IDE 之前收尾；录屏失败（ffmpeg 缺失等）只警告、不阻断 suite。
+  可选变量：`E2E_FFMPEG`（ffmpeg 路径，默认 PATH → `~/.local/bin` → `~/bin`）、
+  `E2E_RECORD_SIZE`（默认 `1280x800`，与 Xvfb 屏幕一致）。CI 上传 artifact 时与失败截图、
+  Jest JSON 一并上传（T3.1/T3.2 消费）。
 - 耗时预算：全 suite（含 IDE 冷启动）~40s 量级（spike 实测单用例全流水线 ~39s）；
   单用例 Jest 超时 120s；
 - **DevTools 实例语义**：globalSetup 干净重启 IDE 一次；auto 隧道用**固定端口 9420**：
