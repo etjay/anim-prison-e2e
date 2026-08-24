@@ -11,6 +11,8 @@
 #   与 e2e/tools/ensure-devtools.js 的 devtoolsRoot() 发现逻辑（~/wechat-devtools/app/opt/apps/.../files/bin）对齐。
 # - E2E_RECORD=1 由 e2e/global.setup.js 在 DevTools 启动前拉起 ffmpeg x11grab 录 :97，
 #   落 e2e/artifacts/*.mp4（mp4 文件名带时间戳，glob 收集）。
+# - Xvfb :97 由本流水线在 `npm run e2e` 前预启（startRecording() 先于 ensureDevtools() 轮询
+#   X socket，全新 runner 上若不预启，mp4 录像会被静默跳过）；ensureX11Display() 幂等复用。
 # - Jest JSON 走 CLI 旗标注入（不改 e2e/ 配置）：--json --outputFile=e2e/reports/jest.json。
 # - 录像/截图/Jest JSON 三类产物无论成败都上传（if: always()），保留 14 天。
 
@@ -106,6 +108,21 @@ jobs:
           echo "mock-server 60s 内未就绪，日志：" >&2
           tail -n 50 mock-server.log >&2 || true
           exit 1
+
+      - name: Pre-start Xvfb :97 (so E2E_RECORD captures the whole session)
+        run: |
+          set -euo pipefail
+          # e2e/global.setup.js 中 startRecording() 先于 ensureDevtools() 运行：它先轮询
+          # /tmp/.X11-unix/X97（15s），拿不到 socket 就放弃录像。全新 runner 上 Xvfb 尚未
+          # 启动 → 若不预启，mp4 全程录像会被静默跳过（本地能录是因 Xvfb 常驻）。
+          # ensureX11Display() 幂等：Xvfb 已在跑且 socket 存在则直接复用，不会二次冷启。
+          if ! pgrep -x Xvfb >/dev/null 2>&1; then
+            nohup Xvfb :97 -screen 0 1280x800x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
+            disown || true
+          fi
+          for i in $(seq 1 20); do [ -S /tmp/.X11-unix/X97 ] && break; sleep 0.5; done
+          [ -S /tmp/.X11-unix/X97 ] || { echo "Xvfb :97 未在 10s 内就绪" >&2; tail -n 20 /tmp/xvfb.log >&2 || true; exit 1; }
+          echo "Xvfb :97 已就绪（socket 存在，E2E_RECORD 可全程录像）。"
 
       - name: Run E2E (with full screen recording)
         env:
