@@ -13,6 +13,12 @@
 #   落 e2e/artifacts/*.mp4（mp4 文件名带时间戳，glob 收集）。
 # - Xvfb :97 由本流水线在 `npm run e2e` 前预启（startRecording() 先于 ensureDevtools() 轮询
 #   X socket，全新 runner 上若不预启，mp4 录像会被静默跳过）；ensureX11Display() 幂等复用。
+# - 冷机首屏编译 >30s 会撞 e2e/helpers/runtime.js 的 waitForAppReady 30s 硬上限（测试域，
+#   CI 侧不改）。scripts/e2e-prewarm.js 在测试前用**独立端口 9421**（避开通道 9420 的孤儿
+#   renderer 占用）冷启一次 IDE 并编译首屏，把 on-disk 编译缓存
+#   （~/.config/wechat-devtools/WeappCache/，按工程 hash 存盘、与端口无关）焐热，随后 cli quit 干净退出；
+#   globalSetup 每轮 stopAllIde 冷启新 IDE（补丁 D），但编译缓存在盘、跨 IDE 重启存活 →
+#   测试重编译走热缓存，waitForAppReady 秒过。预热失败不阻断。
 # - Jest JSON 走 CLI 旗标注入（不改 e2e/ 配置）：--json --outputFile=e2e/reports/jest.json。
 # - 录像/截图/Jest JSON 三类产物无论成败都上传（if: always()），保留 14 天。
 
@@ -124,10 +130,31 @@ jobs:
           [ -S /tmp/.X11-unix/X97 ] || { echo "Xvfb :97 未在 10s 内就绪" >&2; tail -n 20 /tmp/xvfb.log >&2 || true; exit 1; }
           echo "Xvfb :97 已就绪（socket 存在，E2E_RECORD 可全程录像）。"
 
+      - name: Pre-warm DevTools first frame (warm on-disk compile cache)
+        env:
+          DISPLAY: ":97"          # IDE(nw, GUI) 须有 DISPLAY 才能起进程 + 建隧道（与 WDT_DISPLAY 一致）
+          E2E_PREWARM_PORT: "9421"   # 预热专用隧道端口，刻意不同于测试的 9420（避免孤儿 renderer 占 9420）
+          E2E_PREWARM_TIMEOUT: "90000"   # 冷机首屏编译上限，给足（默认 90s）
+        continue-on-error: true
+        run: |
+          # 为什么：冷机（CI 共享 runner）首屏编译实测 >30s，会撞 waitForAppReady 的 30s 硬上限。
+          # 做什么：用独立端口 9421 冷启 IDE + 编译首屏，把 on-disk 编译缓存焐热（缓存按工程 hash
+          #   存盘、与隧道端口无关）；随后 cli quit 干净退出主 IDE。
+          # 为什么用 9421 而非 9420：持隧道的 appservice renderer 在 cli quit / stopAllIde 的 pkill
+          #   正则下都会漏杀而孤儿化（其 cmdline 中 --type=renderer 在 DT_ROOT 之前，正则不匹配）。
+          #   若预热也占 9420，孤儿会一直占着 9420，测试 cli auto --auto-port 9420 监听不上。
+          #   用 9421：孤儿占 9421，9420 干净留给测试。
+          # 生效点：后续 `npm run e2e` 的 globalSetup 会 stopAllIde 冷启新 IDE（补丁 D），但编译缓存
+          #   在盘、跨重启存活 → 测试重编译走热缓存，waitForAppReady 秒过。
+          # 失败处理：continue-on-error → 预热挂了测试仍跑（bootstrap 自行 launch 兜底），最坏等于无预热。
+          node scripts/e2e-prewarm.js
+
       - name: Run E2E (with full screen recording)
         env:
           E2E_RECORD: "1"
         run: |
+          # 注：上一步预热已焐热 on-disk 编译缓存，本步冷启 IDE 后重编译走热缓存，
+          #   waitForAppReady（30s 硬上限）在冷机上也应秒过；若仍超时见 e2e-prewarm 日志。
           # e2e/reports 需先存在（jest --outputFile 不建目录）；artifacts/screenshots 亦确保存在。
           mkdir -p e2e/reports e2e/artifacts e2e/screenshots
           # --json --outputFile 为 CLI 旗标注入，不改动 e2e/jest.config.js（e2e/ 归测试）。
