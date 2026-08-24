@@ -36,6 +36,8 @@ module.exports = {
   rect: runtime.rect,
   visible,
   tap: runtime.tapPageHandler,
+  // app 上下文求值原语（页面栈/顶层页数据等场景；T2.3 补充导出）
+  evaluate: runtime.evaluate,
   setPageData: runtime.setPageData,
   setGlobalData: runtime.setGlobalData,
   // 会话（stub 登录 / 邀请码绑定 / 离线兜底）

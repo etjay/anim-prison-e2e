@@ -138,8 +138,8 @@ function requireMp() {
 
 async function waitForAppReady() {
   // 移植版首屏编译较慢：App 就绪前 currentPage 静默挂起（非报错）。短轮询等就绪
-  // （热 IDE 实测 ~8s，上限 30s）。
-  const deadline = Date.now() + 30000;
+  // （热 IDE 实测 ~8s；冷 IDE + 冷编译实测可达 40s+，T2.3 将上限 30s 提到 90s）。
+  const deadline = Date.now() + 90000;
   while (Date.now() < deadline) {
     try {
       await withTimeout(mp.currentPage(), 4000, 'currentPage(等待 App 就绪)');
@@ -148,7 +148,7 @@ async function waitForAppReady() {
       await sleep(500);
     }
   }
-  throw new Error('App 30s 内未就绪（currentPage 轮询超时）');
+  throw new Error('App 90s 内未就绪（currentPage 轮询超时）');
 }
 
 // bootstrap：幂等（文件内）。suite 级：首文件 launch 建隧道，后续文件直连复用。

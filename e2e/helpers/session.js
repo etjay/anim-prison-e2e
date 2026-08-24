@@ -3,7 +3,8 @@
 //
 // 前置：
 // - stubLogin 走登录页 onLogin → wx.request 打 mock-server 的 POST /api/auth/login，
-//   故需 mock-server 已启动（`cd mock-server && npm run start:dev`，默认 127.0.0.1:3000）；
+//   故需 mock-server 已启动（`cd mock-server && MOCK_PROFILE=dev MOCK_PORT=3001 node server.js`，
+//   与 miniprogram/config/env.js 的 dev baseURL 对齐，见 e2e/README.md）；
 // - bindInvite 走绑定页 onConfirm → POST /api/bind，同样需 mock-server
 //   （邀请码 fixtures 见 mock-server/README.md 与 docs/api.md，如 ANIM-001）；
 // - assumeState 为离线兜底（不经接口，直接设 globalData 并跳转），与登录页

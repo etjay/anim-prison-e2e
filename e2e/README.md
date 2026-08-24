@@ -56,8 +56,10 @@ npm run e2e            # 单一入口：globalSetup 干净启 IDE → 跑 e2e/sm
   隧道后直接 `Launcher.connect` 复用（Jest 每个测试文件是独立 worker 进程，跨文件
   复用只能靠 IDE 侧隧道，不能靠进程内单例）——全程只开一次 IDE、只跑一次 `cli auto`；
   suite 结束 globalTeardown 关闭 IDE。因此必须串行（`--runInBand` + `maxWorkers: 1`）；
-- 依赖 mock-server 的用例需先启动：`cd mock-server && npm run start:dev`（dev → 127.0.0.1:3000，
-  与 `miniprogram/config/env.js` 的 dev baseURL 对齐）。
+- 依赖 mock-server 的用例需先启动：**`cd mock-server && MOCK_PROFILE=dev MOCK_PORT=3001 node server.js`**
+  （dev profile 行为不变，仅换端口；与 `miniprogram/config/env.js` 当前 dev baseURL
+  `127.0.0.1:3001` 对齐。原因：共享开发机 127.0.0.1:3000 被 Multica 前端容器占用，
+  无冲突机器上可改回 `npm run start:dev`（3000）并同步 env.js）。
 
 ## 3. 用例编写规范
 
@@ -81,6 +83,20 @@ done-callback 风格，即使 async 也会等 `done()` 直到钩子超时）—�
      （节点已挂载且布局非空；`.visible()` 已含 waitFor，超预算自动抛错 + 失败截图）
 5. **交互**：`await e2e.tap('onConfirm')` 调用当前页的 bindtap 处理函数
    （等价 Element.tap 的页面逻辑效果；手势/点击坐标类用例留给二期真机）。
+   ⚠️ **页面栈语义（T2.3 实测）**：`pageData()`/`tap()`/`visible()` 取
+   `getCurrentPages()[0]`（**栈底**）。经 `reLaunch` 导航（栈恒为 1）时
+   栈底=顶层，无感；但页面内 `navigateTo` 入栈后（如 home→canteen，
+   栈 [home, canteen]）栈底≠可见页，需改用 `e2e.evaluate` 取栈顶：
+   ```js
+   const d = await e2e.evaluate(() => {
+     const ps = getCurrentPages(); return ps[ps.length - 1].data;
+   });
+   await e2e.evaluate((n) => {
+     const p = getCurrentPages().slice(-1)[0]; p[n]();
+   }, 'onFeed');
+   ```
+   详见 smoke/happy-path.test.js 的 topPageData/topTap/topVisible 范式；
+   框架补 topPageData/tapTop 后回收。
 6. **导航**：`await e2e.goto('/pages/bind/bind')`（reLaunch 清栈 + 等待落地）；
    `await e2e.expectPage('/pages/home/home')`（纯等待断言，不触发跳转）。
    ⚠️ 跳转前先对齐 app 状态：部分页面 onShow 会按 globalData 自动重定向
@@ -104,7 +120,8 @@ done-callback 风格，即使 async 也会等 `done()` 直到钩子超时）—�
 | `pageData()` | 当前页 data（文案断言的数据层来源） |
 | `visible(selector, { timeoutMs })` | 渲染层断言：waitFor + 节点 rect（挂载且宽度 >0），返回 rect |
 | `rect(selector)` | 裸渲染层探测（boundingClientRect 或 null） |
-| `tap(method, ...args)` | 触发当前页处理函数（bindtap 等） |
+| `tap(method, ...args)` | 触发当前页处理函数（bindtap 等）；⚠️ 取栈底 [0]，见 §3.5 栈语义 |
+| `evaluate(fn, ...args)` | 在 appservice 上下文执行任意函数（T2.3 起公开，用于栈顶页访问等底层需求） |
 | `setPageData(obj)` | 设当前页 data（如模拟输入：`{ code: 'ANIM-001' }`） |
 | `setGlobalData(obj)` | 设 App.globalData |
 | `stubLogin()` | 登录页 onLogin → 等跳转（需 mock-server）；返回落地页路径 |

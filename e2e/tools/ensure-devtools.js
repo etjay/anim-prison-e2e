@@ -85,9 +85,13 @@ function stopAllIde() {
     sleep(500);
   }
   // 孤儿 renderer 兜底：按安装路径精确匹配，全部杀掉。
+  // 注意 renderer 的 cmdline 顺序是 `--type=renderer ... --nwapp-path=<DT_ROOT>/nwjs/package.nw`，
+  // 模式必须按此顺序（早期版本把 DT_ROOT 写在前面，永远匹配不到 → 孤儿持有 :9420，
+  // 见 T2.3 排查）；且 renderer 对 SIGTERM 无响应，须 pkill -9。
+  const dtEsc = DT_ROOT.replace(/\//g, '\\/');
   spawnSync(
     'bash',
-    ['-lc', `pkill -9 -f "${DT_ROOT.replace(/\//g, '\\/')}.*--type=renderer" 2>/dev/null || true`],
+    ['-lc', `pkill -9 -f -- "--type=renderer.*${dtEsc}/nwjs/package\\.nw" 2>/dev/null || true`],
   );
   const start2 = Date.now();
   while (Date.now() - start2 < 5000) {
