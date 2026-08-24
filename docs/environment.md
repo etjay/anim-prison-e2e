@@ -92,7 +92,7 @@ npm run build         # 等价于 <cli> build-npm --project miniprogram
 | Node.js | v22.22.1 | 2026-08-24 | 客户端开发 |
 | npm | 10.9.4 | 2026-08-24 | 客户端开发 |
 | 构建/开发机 OS | Linux（Ubuntu, x86_64）——owner 已确认为 dev/test 运行机 | 2026-08-24 | 客户端开发 |
-| 小程序基础库版本 (libVersion) | **2.25.3** —— 社区移植版基础库 CDN 上唯一可解析/可下载的版本；更高版本（2.31.0 等）在其 CDN 上“不存在/已下架”，故工程 `libVersion` 已从 `latest` 固定为 `2.25.3`（见 6 故障排查） | 2026-08-24 | 客户端开发 |
+| 小程序基础库版本 (libVersion) | **2.25.3**（工程默认；port 自带捆绑、免下载）/ **2.25.4**（GUI 下拉可选；已验证可下载）—— 社区移植版捆绑基础库为 2.25.3（includedLibs #806，`commlib/806.wxapkg` 已验证 16.9MB）；GUI 下拉为 IDE 兜底版本列表（含 2.25.4、不含 2.25.3，未登录时实时列表 `gettestpublib` 拉取失败）。工程 `libVersion` 已从 `latest` 固定为 `2.25.3`；2.31.0 等更高版本超出该 port 版本表、CDN 404（见 6 故障排查） | 2026-08-24 | 客户端开发 |
 
 > 需求设计锁定 “DevTools stable 锁版本”。因官方 stable 2.02.2608040 无一方 Linux 包，Linux 机锁定 **社区移植版 v2.01.2510290-2（上游 2.01.2510290）**，sha256 锁于 `scripts/install-devtools.sh`，供 stage2/3 与 CI 对齐。
 
@@ -141,4 +141,4 @@ const BASE_URLS = {
 | `http` 跨域/合法域名报错 | 确认 `project.config.json` 的 `urlCheck=false`；或在 DevTools「详情→本地设置」勾选“不校验合法域名” |
 | 绑定报错码 `BIND_INVALID` / `BIND_DUPLICATE` | 属预期分支（错误邀请码 / 重复绑定），与 T1.2 API 文档错误码一致，用于 stage2 异常用例 |
 | lint 报 `no-undef: wx/App/Page` | 检查 `.eslintrc.cjs` 的 `globals` 是否被误改 |
-| 弹窗「下载基础库版本 2.31.0 失败：不存在或已下架」 | 社区移植版基础库 CDN 仅 **2.25.3** 可用。把 `miniprogram/project.config.json` 与 `miniprogram/project.private.config.json` 的 `libVersion` 固定为 `2.25.3`（已提交，commit 3a2a327），或 GUI「详情→本地设置→基础库版本」选 2.25.3 后重编译。已验证 2.25.3 可下载（`commlib/806.wxapkg` → 200） |
+| 弹窗「下载基础库版本 2.31.0 失败：不存在或已下架」 | 2.31.0/“latest” 超出该 port（2.01.2510290）的版本表，CDN 无对应包。**解法**：GUI「基础库版本」选 **2.25.4**（下拉里就有，真实包 16MB 已验证可下载，走通无问题）；或保留工程固定的 **2.25.3**（port 自带捆绑、免下载——关闭项目重新打开即用）。工程 `libVersion` 已固定为 2.25.3（commit 3a2a327）。已验证：`commlib/806.wxapkg`（2.25.3）→ 16.9MB 200 |
