@@ -9,10 +9,9 @@ dist/
 build/
 
 # DevTools
+# project.private.config.json = 个人/机器本地配置，IDE 会随 GUI 设置改写（如基础库版本 2.25.3/2.25.4），
+# 故 gitignore；共享默认（基础库 2.25.3，port 捆绑、免下载）在 miniprogram/project.config.json。
 miniprogram/project.private.config.json
-# 注：project.private.config.json 已被 gitignore（个人本地配置）；
-# 仓库中的模板副本见下方例外。
-!miniprogram/project.private.config.json
 
 # E2E 产物（stage2 使用）
 e2e/screenshots/
