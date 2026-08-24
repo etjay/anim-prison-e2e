@@ -34,9 +34,10 @@ curl -fsSL -o "${WORK}/${DEB_NAME}" "${URL}"
 echo "==> 校验 sha256"
 echo "${SHA256}  ${WORK}/${DEB_NAME}" | sha256sum -c -
 
-echo "==> 解包到 ${INSTALL_DIR}"
-mkdir -p "${INSTALL_DIR}"
-dpkg -x "${WORK}/${DEB_NAME}" "${INSTALL_DIR}"
+echo "==> 解包到 ${INSTALL_DIR}/app（devtoolsRoot() 期望 app/opt/apps 布局，故解包根为 ${INSTALL_DIR}/app）"
+rm -rf "${INSTALL_DIR}/app"
+mkdir -p "${INSTALL_DIR}/app"
+dpkg -x "${WORK}/${DEB_NAME}" "${INSTALL_DIR}/app"
 
 # 定位 files/bin（含 nwjs/ 与 bin/wechat-devtools-cli）
 BIN_DIR="$(find "${INSTALL_DIR}/app/opt/apps" -maxdepth 3 -type d -name bin -path '*files/bin' 2>/dev/null | head -n1 || true)"
