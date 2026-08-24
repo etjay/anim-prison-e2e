@@ -3,7 +3,7 @@
   "compileType": "miniprogram",
   "appid": "touristappid",
   "projectname": "anim-prison-e2e",
-  "libVersion": "latest",
+  "libVersion": "2.25.3",
   "setting": {
     "es6": true,
     "enhance": true,
@@ -14,7 +14,8 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "minifyWXML": true
   },
   "condition": {},
   "editorSetting": {

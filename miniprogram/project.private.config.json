@@ -1,4 +1,5 @@
 {
+  "libVersion": "2.25.3",
   "setting": {
     "compileHotReLoad": true
   }
