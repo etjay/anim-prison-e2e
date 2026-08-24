@@ -1,0 +1,135 @@
+# CI: WeChat DevTools E2E（社区移植版 + Jest + 全程录像 + 产物上传）
+#
+# 触发：push → main，以及 PR → main。
+# 依据：docs/spike-devtools-automator.md §6（CI 化建议）+ docs/environment.md。
+# 职责边界（部署运维）：本文件只负责「构建/发布/环境/基础设施」——装依赖、装 DevTools、
+#   起 mock-server、跑 e2e、收产物；不改 e2e/ 测试代码与 miniprogram/ 业务代码。
+#
+# 说明：
+# - 全程在 ubuntu-latest（24.04，与本地开发环境同构）单机完成，无需 Docker。
+# - DevTools 走 scripts/install-devtools.sh（社区移植版 msojocs，dpkg -x 解包到 ~/wechat-devtools），
+#   与 e2e/tools/ensure-devtools.js 的 devtoolsRoot() 发现逻辑（~/wechat-devtools/app/opt/apps/.../files/bin）对齐。
+# - E2E_RECORD=1 由 e2e/global.setup.js 在 DevTools 启动前拉起 ffmpeg x11grab 录 :97，
+#   落 e2e/artifacts/*.mp4（mp4 文件名带时间戳，glob 收集）。
+# - Jest JSON 走 CLI 旗标注入（不改 e2e/ 配置）：--json --outputFile=e2e/reports/jest.json。
+# - 录像/截图/Jest JSON 三类产物无论成败都上传（if: always()），保留 14 天。
+
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: WeChat DevTools E2E (record + artifacts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      WDT_DISPLAY: ":97"   # 固定 display，避免与 runner 上其他 X 会话冲突（spike §6）
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          # 运行期依赖：ffmpeg(录像) / xvfb(虚拟显示) / x11vnc(可选排障) + DevTools 所需
+          # GTK3/Chromium/nwjs 共享库（按 ldd(nw)+dpkg -S 在 24.04 上核实；t64 为 noble 变体名）。
+          sudo apt-get install -y --no-install-recommends \
+            ffmpeg xvfb x11vnc curl ca-certificates \
+            fontconfig fonts-noto-cjk xfonts-base \
+            libnss3 libnspr4 \
+            libatk1.0-0t64 libatspi2.0-0t64 libcups2t64 \
+            libdbus-1-3 libdrm2 libgbm1 libasound2t64 \
+            libxcomposite1 libxdamage1 libxext6 libxfixes3 libxi6 \
+            libxrandr2 libxrender1 libxshmfence1 libxkbcommon0 \
+            libxcb1 libxcb-render0 libxcb-shm0 \
+            libx11-6 libx11-xcb1 libxau6 libxdmcp6 \
+            libxcursor1 libxtst6 libxss1 \
+            libpango-1.0-0 libpangocairo-1.0-0 libcairo2 \
+            libglib2.0-0t64 libfreetype6 libfontconfig1 \
+            libgraphite2-3 libharfbuzz0b \
+            libexpat1
+          sudo ldconfig
+
+      - name: Install root node deps
+        run: npm ci
+
+      - name: Install WeChat DevTools (community port)
+        run: bash scripts/install-devtools.sh
+
+      - name: Verify DevTools shared libs resolve
+        run: |
+          NW="$(find "$HOME/wechat-devtools" -path '*nwjs/nw' -type f 2>/dev/null | head -n1)"
+          [ -n "$NW" ] || { echo "未找到 nw 可执行文件（DevTools 安装异常）" >&2; exit 1; }
+          echo "nw: $NW"
+          missing="$(ldd "$NW" 2>/dev/null | grep -i 'not found' || true)"
+          if [ -n "$missing" ]; then
+            echo "缺少共享库（请补入 apt 依赖清单）：" >&2
+            echo "$missing" >&2
+            exit 1
+          fi
+          echo "DevTools 共享库全部解析成功。"
+
+      - name: Install mock-server deps
+        run: cd mock-server && npm ci
+
+      - name: Start mock-server
+        run: |
+          cd mock-server
+          nohup npm run start:dev > "../mock-server.log" 2>&1 &
+          echo "mock-server pid: $!"
+          disown || true
+
+      - name: Wait for mock-server /health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsSL http://127.0.0.1:3000/health >/dev/null 2>&1; then
+              echo "mock-server 就绪（第 ${i} 次探测）"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "mock-server 60s 内未就绪，日志：" >&2
+          tail -n 50 mock-server.log >&2 || true
+          exit 1
+
+      - name: Run E2E (with full screen recording)
+        env:
+          E2E_RECORD: "1"
+        run: |
+          # e2e/reports 需先存在（jest --outputFile 不建目录）；artifacts/screenshots 亦确保存在。
+          mkdir -p e2e/reports e2e/artifacts e2e/screenshots
+          # --json --outputFile 为 CLI 旗标注入，不改动 e2e/jest.config.js（e2e/ 归测试）。
+          npm run e2e -- --json --outputFile=e2e/reports/jest.json
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-${{ github.run_number }}
+          path: |
+            e2e/artifacts/
+            e2e/screenshots/
+            e2e/reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Stop mock-server
+        if: always()
+        run: |
+          pkill -f "node server.js" 2>/dev/null || true
+          echo "mock-server 已停止。"
