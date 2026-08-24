@@ -1,0 +1,21 @@
+{
+  "name": "anim-prison-mock-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stub/mock backend for the Animal Prison miniprogram E2E env (ANIM-3 stage1 / T1.2). Aligned to the committed miniprogram client contract and docs/gameplay/prison-interactions.md.",
+  "type": "commonjs",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "start:dev": "MOCK_PROFILE=dev node server.js",
+    "start:preview": "MOCK_PROFILE=preview node server.js",
+    "reset": "node scripts/reset.js",
+    "smoke": "node scripts/smoke.js",
+    "smoke:dev": "MOCK_PROFILE=dev node scripts/smoke.js",
+    "smoke:preview": "MOCK_PROFILE=preview node scripts/smoke.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
