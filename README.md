@@ -63,7 +63,7 @@ npm run build          # DevTools CLI build-npm（校验/构建 miniprogram 工�
   DEVTOOLS_CLI=/path/to/cli npm run build   # 显式指定 CLI（推荐，避免路径漂移）
   ```
 
-- **版本记录**：官方当前 stable = **2.02.2608040（2026-08-18，Win/macOS，无一方 Linux 包）**，已记入 `docs/environment.md`；Linux 机按 3.1 路径 A/B 选定具体构建后回填“本机锁定版本”。Node/npm/OS 已记录：v22.22.1 / 10.9.4 / Linux（owner 已确认为 dev/test 运行机）。
+- **版本记录**：官方当前 stable = **2.02.2608040（2026-08-18，Win/macOS，无一方 Linux 包）**。Linux 机已锁定 **社区移植版 v2.01.2510290-2（上游 DevTools 2.01.2510290）**（安装/CLI 路径/登录态/运行方式见 `docs/environment.md` 与 `scripts/install-devtools.sh`）。Node/npm/OS：v22.22.1 / 10.9.4 / Linux（owner 已确认为 dev/test 运行机）。
 
 ## 5 页手动走通（DevTools）
 
