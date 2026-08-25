@@ -2,8 +2,9 @@
 //   stub 登录 → 绑定新邀请码 → 首页地图/动物卡片渲染 → 食堂喂食互动 → 评分展示更新
 //
 // 前置：
-// - mock-server 已启动（dev profile；本机 dev baseURL 为 127.0.0.1:3001，
-//   与 miniprogram/config/env.js 一致，启动方式见 e2e/README.md）；
+// - mock-server 已启动（dev profile；端口经 E2E_MOCK_PORT 对齐，默认 127.0.0.1:3000
+//   —— 干净 runner 无 3000 冲突时用 start:dev(3000)；本机 3000 被占时 MOCK_PORT=3001
+//   并传 E2E_MOCK_PORT=3001。启动方式见 e2e/README.md）；
 // - mock 默认时钟 2026-01-15T12:00:00+08:00 在午间喂食窗口内（11:30–13:00），
 //   正向喂食开箱即用，无需 X-Mock-Now；
 // - 断言基线对齐 docs/api.md（T1.2）：初始 satisfaction 55 → score 2.8；
@@ -19,8 +20,10 @@
 //   非 automator API），失败重试可整段重放；S3–S6 共享 S2 之后的已绑定链路状态。
 const e2e = require('../helpers');
 
-// 与 miniprogram/config/env.js 的 dev baseURL 保持一致。
-const MOCK_BASE = 'http://127.0.0.1:3001';
+// mock-server 端口：与其余 smoke 用例一致，默认 3000（干净 runner 的 start:dev）；
+// 本机 3000 被占时以 E2E_MOCK_PORT=3001 对齐。此前此处硬编码 3001，与 CI 的 3000
+// 不符导致 resetFixtures ECONNREFUSED（ANIM-11 CI 修复）。
+const MOCK_BASE = `http://127.0.0.1:${process.env.E2E_MOCK_PORT || 3000}`;
 
 /** 重置 fixtures（POST /api/reset）：账号/邀请码/动物回到默认初始态。 */
 async function resetFixtures() {
@@ -77,6 +80,15 @@ async function topVisible(selector, { timeoutMs = 15000 } = {}) {
 }
 
 beforeAll(e2e.bootstrap);
+beforeAll(async () => {
+  // 对齐 app 的 globalData.baseURL 到 mock-server（与本目录其余 smoke 用例一致）：
+  // utils/request.js 优先取 app.globalData.baseURL，缺省才回落 config/env.js 的 dev=3001。
+  // 干净 runner（CI）上 mock-server 跑 3000（start:dev），若不显式对齐，app 的
+  // onLogin / wx.request 会打到 3001（空端口）→ stubLogin 的 reLaunch 永不触发 →
+  // 登录跳转 20s 预算超时（ANIM-11 CI：happy-path S1–S6 级联失败的根因）。本机 3000
+  // 被占时以 MOCK_PORT=3001 + E2E_MOCK_PORT=3001 起服务，此对齐自动跟随（env-gated）。
+  await e2e.setGlobalData({ baseURL: MOCK_BASE });
+});
 afterEach(e2e.autoShot);
 
 // —— S1 stub 登录：未绑定账号落地欢迎页 ——
