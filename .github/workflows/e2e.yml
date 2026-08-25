@@ -1,6 +1,9 @@
 # CI: WeChat DevTools E2E（社区移植版 + Jest + 全程录像 + 产物上传）
 #
 # 触发：push → main，以及 PR → main。
+# 门禁（T3.2）：main 分支保护规则要求状态检查 “WeChat DevTools E2E (record + artifacts)” 通过（含
+#   enforce_admins）→ 套件红 = 检查红 = PR 不可合入（拦截合入）。检查名 = 本 workflow job 的
+#   `name:`（改 job name 须同步改分支保护规则，见 issue ANIM-12 评论的 API 配置记录）。
 # 依据：docs/spike-devtools-automator.md §6（CI 化建议）+ docs/environment.md。
 # 职责边界（部署运维）：本文件只负责「构建/发布/环境/基础设施」——装依赖、装 DevTools、
 #   起 mock-server、跑 e2e、收产物；不改 e2e/ 测试代码与 miniprogram/ 业务代码。
