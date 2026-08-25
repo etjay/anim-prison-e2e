@@ -210,7 +210,9 @@ T2.3 `agent/agent/e0af70c4e342`（已 done）、T2.4 `agent/agent/d71584c409a4`
 
 | # | 遗留项 | 现状 / 出处 | 处置 |
 |---|--------|-----------|------|
-| 1 | helper 栈顶页访问提升为框架 API | `topPageData/topTap/topVisible` 范式目前内实现于 `e2e/smoke/happy-path.test.js`（经 `e2e.evaluate` 栈顶访问）；`e2e/README.md` 已注明「框架补 `topPageData()/tapTop()` 后回收」 | 单页用例（T2.4/T2.2）不受影响；多页用例新增时先复用 happy-path 范式，待 helper 层补 first-class API 后统一回收 |
-| 2 | CI 截图/产物兜底 | CI（PR#2，T3.2）以 `if: always()` 上传截图/录像/Jest JSON 三类产物（保留 14 天），并用 `scripts/e2e-prewarm.js`（独立端口 9421）兜底冷机编译缓存（预热失败不阻断）；本地失败现场靠 `e2e/screenshots/auto-*.png` + 可选 `E2E_RECORD=1` 录像 | PR#2 合入 main 后由 CI 接管；合入前本地排查走 §6 |
+| 1 | helper 栈顶页访问提升为框架 API | `topPageData/topTap/topVisible` 范式目前内建于 `e2e/smoke/happy-path.test.js`（经 `e2e.evaluate` 栈顶访问）；`e2e/README.md` 已注明「框架补 `topPageData()/tapTop()` 后回收」 | 单页用例（T2.4/T2.2）不受影响；多页用例新增时先复用 happy-path 范式，待 helper 层补 first-class API 后统一回收 |
+| 2 | CI 截图兜底（`App.captureScreenshot` CI 系统性失败） | 移植版 DevTools 在 CI 上 `App.captureScreenshot` 系统性失败（T3.2 验收时定位，已分发给测试侧随 T2.5 记录）；当前截图产物靠 automator 用例后截图 `e2e/screenshots/auto-*.png`，后续可加 **X11 窗口级截图兜底**（x11vnc / import / ffmpeg，CI 依赖清单已含 x11vnc 供排障）；CI 侧 `if: always()` 上传截图/录像/Jest JSON 三类产物（保留 14 天）待 PR#2 合入后生效 | 一期不阻塞：失败现场以录像（`E2E_RECORD=1`）+ automator 截图为准；窗口级兜底待 CI 稳定后排期 |
 | 3 | 3000 端口 / `MOCK_PORT=3001` | 约定 dev 默认 3000；验证期共享机 3000 被占 → 统一 3001（`env.js` dev baseURL、T2.3 断言基线、`E2E_MOCK_PORT` 对齐，T2.4 默认仍 3000），详见 §2 假设 #7 | 改回 3000 需同步改 `env.js` + T2.3 `MOCK_BASE`；一期不动，二期随端口规范化一并处理 |
-| 4 | `waitForAppReady` 超时上限 | 冷 IDE + 冷编译实测可达 40s+；T2.3 已将上限 30s → 90s（`e2e/helpers/runtime.js`）；CI 侧另有 `e2e-prewarm.js` 兜底（遗留项 #2） | 极端冷环境（全新机首跑）90s 仍可能不足 → 重跑即过（二次热 IDE）；如需再调直接改 runtime.js 单一常量 |
+| 4 | `waitForAppReady` 超时上限 | 冷 IDE + 冷编译实测可达 40s+；T2.3 已将上限 30s → 90s（`e2e/helpers/runtime.js`）；CI 侧另有 `e2e-prewarm.js`（独立端口 9421）兜底冷机编译缓存（预热失败不阻断） | 极端冷环境（全新机首跑）90s 仍可能不足 → 重跑即过（二次热 IDE）；如需再调直接改 runtime.js 单一常量 |
+| 5 | CI 预热 90s 预算复跑确认（部署侧） | T2.3 将 `waitForAppReady` 30s→90s 后，PR#2 rebase 复跑 CI 时需确认 `e2e-prewarm.js` 预热预算是否充足（小队长 T3.2 验收已提示） | 非阻塞：部署运维工程师 rebase PR#2 复跑 CI 时一并验证 |
+| 6 | `t32-ci-diag`（PR#4）诊断分支处置 | CI 卡死根因诊断分支（多轮 CI + 反编译定位记录），测试侧决策（2026-08-25）：**保留为诊断分支，不合入 main**（诊断用例/产物不入产品代码线，保留供二期真机/自托管 runner 排障参考） | 无需动作；PR#4 可关单（keep-as-diagnostic） |
