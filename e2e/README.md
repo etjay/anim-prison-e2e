@@ -47,7 +47,12 @@ npm run e2e            # 单一入口：globalSetup 干净启 IDE → 跑 e2e/sm
   录像从 globalSetup 的 Xvfb 启动开始（覆盖 IDE 冷启 + 打开工程编译 + 全程测试），
   在 globalTeardown 杀 IDE 之前收尾；录屏失败（ffmpeg 缺失等）只警告、不阻断 suite。
   可选变量：`E2E_FFMPEG`（ffmpeg 路径，默认 PATH → `~/.local/bin` → `~/bin`）、
-  `E2E_RECORD_SIZE`（默认 `1280x800`，与 Xvfb 屏幕一致）。CI 上传 artifact 时与失败截图、
+  `E2E_RECORD_SIZE`（默认 `1280x800`，与 Xvfb 屏幕一致）、
+  `E2E_RECORD_MASK`（二维码悬浮卡片遮罩框 `X0:Y0:X1:Y1`，默认 `1005:135:1185:315`，
+  设 `none` 关闭；DevTools 社区移植版首屏编译后会弹固定「预览二维码」悬浮卡片遮罩
+  模拟器右上、直到录制结束，此为 ANIM-3 修复——在 ffmpeg x11grab 管道加 `drawbox`
+  对固定区域加不透明遮罩，对测试逻辑零影响；卡片位置在固定 1280×800 布局下确定，
+  IDE 版本漂移致移位时调大此框即可）。CI 上传 artifact 时与失败截图、
   Jest JSON 一并上传（T3.1/T3.2 消费）。
 - 耗时预算：全 suite（含 IDE 冷启动）~40s 量级（spike 实测单用例全流水线 ~39s）；
   单用例 Jest 超时 120s；
