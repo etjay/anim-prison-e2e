@@ -95,6 +95,30 @@ jobs:
           fi
           echo "DevTools 共享库全部解析成功。"
 
+      - name: Pre-stage base lib vendor (pin 2.25.3, fix fresh-runner stall)
+        run: |
+          set -euo pipefail
+          # 根因（T3.2 诊断轮定位）：全新 runner 的 IDE 只有内置 WeappVendor/cfg.json，
+          # 其 libs map 仅含 "alpha"，list[0]="2.31.0"。IDE 的 translateVersion() 逻辑：
+          # 项目 pin 的版本不在 libs 中 → 升级到 list[0]。于是 pin 的 2.25.3 被升成
+          # 2.31.0（磁盘上没有、libs 里也没有可下载 URL）→ mainframe?v=2.31.0 的
+          # SUBPACKAGE_READY 握手永不完成 → routeTo appLaunch timeout → 应用永远不就绪。
+          # 修复：预置含 2.25.3 的 vendor cfg（libs 含 2.25.3 + list=["2.25.3"]），
+          # 并把 .deb 内捆绑的同版本 2.25.3.wxvpkg 拷入 WeappVendor（自带签名校验通过，
+          # 无需联网下载）。本地全新 HOME 实测：pin 生效，首屏 24s 就绪、零 route 超时。
+          BIN_DIR="$(find "$HOME/wechat-devtools/app/opt/apps" -maxdepth 3 -type d -name bin -path '*files/bin' 2>/dev/null | head -n1)"
+          [ -n "$BIN_DIR" ] || { echo "未找到 DevTools files/bin（安装异常）" >&2; exit 1; }
+          VENDOR_PKG="$BIN_DIR/package.nw/js/vendor/2.25.3.wxvpkg"
+          [ -f "$VENDOR_PKG" ] || { echo "未找到捆绑基础库：$VENDOR_PKG" >&2; exit 1; }
+          CFG_DIR="$HOME/.config/wechat-devtools/WeappVendor"
+          mkdir -p "$CFG_DIR"
+          cp "$VENDOR_PKG" "$CFG_DIR/2.25.3.wxvpkg"
+          cat > "$CFG_DIR/cfg.json" <<'CFG'
+          {"includedLibs":{"2.25.3":{"version":"2.25.3","numberVersion":806,"md5":"jKnnLDFH5Mp5V2xnhXT+zp8LjcYog1xJNtjRg2so7r3NMo6Tlb67Livi1c5rckoaX1zb1zZBS8vP5HJw6mBJ4po2Xs4Hh80n/bHc5oI2qzGIFcYWr1/SnkvJxb5r26DTj209EyjMWCCQzC8dOCOUQz5csLdbi4csP26gZA7PvNw=","url":"https://res.servicewechat.com/weapp/public/commlib/806.wxapkg"}},"configVersion":1661323315556,"libs":{"alpha":{"WACloud.js":"7474030abe72b5924617dc6b878fe4c2"},"2.25.3":{"version":"2.25.3","number_version":806,"md5":"jKnnLDFH5Mp5V2xnhXT+zp8LjcYog1xJNtjRg2so7r3NMo6Tlb67Livi1c5rckoaX1zb1zZBS8vP5HJw6mBJ4po2Xs4Hh80n/bHc5oI2qzGIFcYWr1/SnkvJxb5r26DTj209EyjMWCCQzC8dOCOUQz5csLdbi4csP26gZA7PvNw=","url":"https://res.servicewechat.com/weapp/public/commlib/806.wxapkg"}},"list":["2.25.3"]}
+          CFG
+          echo "基础库 vendor 预置完成："
+          ls -la "$CFG_DIR"
+
       - name: Install mock-server deps
         run: cd mock-server && npm ci
 
