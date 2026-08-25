@@ -61,6 +61,7 @@ jobs:
           # GTK3/Chromium/nwjs 共享库（按 ldd(nw)+dpkg -S 在 24.04 上核实；t64 为 noble 变体名）。
           sudo apt-get install -y --no-install-recommends \
             ffmpeg xvfb x11vnc curl ca-certificates \
+            xdotool x11-utils iproute2 \
             fontconfig fonts-noto-cjk xfonts-base \
             libnss3 libnspr4 \
             libatk1.0-0t64 libatspi2.0-0t64 libcups2t64 \
@@ -167,7 +168,7 @@ jobs:
           # 失败处理：continue-on-error → 预热挂了测试仍跑（bootstrap 自行 launch 兜底），最坏等于无预热。
           node scripts/e2e-prewarm.js
 
-      - name: Diagnostics dump (WeappLog / cache / procs)
+      - name: Diagnostics dump (WeappLog / cache / procs / net)
         if: always()
         run: |
           # 诊断分支专用：预热结束后（无论成败）打 IDE 现场，定位冷机首屏卡点。
@@ -179,11 +180,25 @@ jobs:
           ls -t "$CFG/WeappLog/logs" 2>/dev/null | head -5 || echo "无 WeappLog"
           LATEST="$(ls -t "$CFG/WeappLog/logs" 2>/dev/null | head -1 || true)"
           if [ -n "$LATEST" ]; then
-            echo "=== 最新日志 $LATEST（末 100 行）==="
-            tail -n 100 "$CFG/WeappLog/logs/$LATEST" || true
+            echo "=== 最新日志 $LATEST（末 300 行）==="
+            tail -n 300 "$CFG/WeappLog/logs/$LATEST" || true
+            # 全量日志进 artifact：tail 窗口只覆盖近 3 分钟，关键事件（simulator launch /
+            # finish load user code / webview loaded）更早，必须全量才能对齐时间线。
+            mkdir -p e2e/reports/logs
+            cp "$CFG/WeappLog/logs/$LATEST" "e2e/reports/logs/weapplog-after-prewarm.log" 2>/dev/null || true
           fi
           echo "=== 进程（按 CPU top 15）==="
           ps -eo pid,pcpu,etimes,comm --sort=-pcpu | head -15 || true
+          echo "=== 网络连接（ss -tan top 40）==="
+          ss -tan 2>/dev/null | head -40 || true
+          echo "=== X 窗口树（DISPLAY :97）==="
+          DISPLAY=:97 xdotool search --name "" 2>/dev/null | while read -r w; do
+            echo "win $w: $(DISPLAY=:97 xdotool getwindowname "$w" 2>/dev/null | head -c 80)"
+          done
+          DISPLAY=:97 xwininfo -root -tree 2>/dev/null | head -50 || true
+          echo "=== CPU 信息 ==="
+          nproc 2>/dev/null
+          lscpu 2>/dev/null | grep -E "Model name|^CPU\(s\)|MHz|Thread" | head -6 || true
 
       - name: Run E2E (with full screen recording)
         env:
@@ -195,6 +210,20 @@ jobs:
           mkdir -p e2e/reports e2e/artifacts e2e/screenshots
           # --json --outputFile 为 CLI 旗标注入，不改动 e2e/jest.config.js（e2e/ 归测试）。
           npm run e2e -- --json --outputFile=e2e/reports/jest.json
+
+      - name: Archive full WeappLog (after run)
+        if: always()
+        run: |
+          # 诊断：Run E2E 结束后把最新全量 WeappLog 收进 reports/logs/，随 artifact 一起上传。
+          set -uo pipefail
+          LATEST="$(ls -t "$HOME/.config/wechat-devtools/WeappLog/logs" 2>/dev/null | head -1 || true)"
+          if [ -n "$LATEST" ]; then
+            mkdir -p e2e/reports/logs
+            cp "$HOME/.config/wechat-devtools/WeappLog/logs/$LATEST" "e2e/reports/logs/weapplog-after-run.log" 2>/dev/null || true
+            echo "已归档 $LATEST -> e2e/reports/logs/weapplog-after-run.log"
+          else
+            echo "WeappLog 不存在（跳过归档）"
+          fi
 
       - name: Upload E2E artifacts
         if: always()

@@ -105,15 +105,20 @@ function dumpDiagnostics(reason) {
   if (top) console.log('[e2e-prewarm][diag] 进程 top12（pid,pcpu,已运行秒,comm）：\n' + top);
   const latest = sh(`ls -t ${q(weappLogDir())} 2>/dev/null | head -1`);
   if (latest) {
-    const tail = sh(`tail -n 80 ${q(path.join(weappLogDir(), latest))} 2>/dev/null`);
+    const tail = sh(`tail -n 250 ${q(path.join(weappLogDir(), latest))} 2>/dev/null`);
     if (tail) {
-      console.log(`[e2e-prewarm][diag] 最新小程序日志 ${latest}（末 80 行）：`);
+      console.log(`[e2e-prewarm][diag] 最新小程序日志 ${latest}（末 250 行）：`);
       tail.split('\n').forEach((l) => console.log('[e2e-prewarm][diag]   ' + l));
     } else {
       console.log(`[e2e-prewarm][diag] 最新日志 ${latest} 为空（appservice 尚无输出）`);
     }
   } else {
     console.log('[e2e-prewarm][diag] WeappLog 无日志文件（appservice 未产出日志 → 首屏可能未进入编译阶段）');
+  }
+  const net = sh('ss -tan 2>/dev/null | head -40');
+  if (net) {
+    console.log('[e2e-prewarm][diag] 网络连接状态（ss -tan，看本地 devserver 端口是否 ESTAB 挂起）：');
+    net.split('\n').forEach((l) => console.log('[e2e-prewarm][diag]   ' + l));
   }
 }
 function withTimeout(p, ms, label) {
