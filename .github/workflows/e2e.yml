@@ -15,7 +15,10 @@
 #   X socket，全新 runner 上若不预启，mp4 录像会被静默跳过）；ensureX11Display() 幂等复用。
 # - 冷机首屏编译 >30s 会撞 e2e/helpers/runtime.js 的 waitForAppReady 30s 硬上限（测试域，
 #   CI 侧不改）。scripts/e2e-prewarm.js 在测试前用**独立端口 9421**（避开通道 9420 的孤儿
-#   renderer 占用）冷启一次 IDE 并编译首屏，把 on-disk 编译缓存
+#   renderer 占用）编译首屏。关键：预热**复用测试域的 ensureDevtools()**（只读 import）先把 IDE
+#   冷启出来（nw 二进制冷启，CI ~9-15s），再 automator.launch 仅建隧道 + 编译首屏（CI ~13s）——
+#   与测试自己 globalSetup→bootstrap 的分段一致；若让 `cli auto` 一步到位「冷启 + 建隧道」，
+#   冷机实测 >60s 会撞 automator.launch 超时（见 run #3）。把 on-disk 编译缓存
 #   （~/.config/wechat-devtools/WeappCache/，按工程 hash 存盘、与端口无关）焐热，随后 cli quit 干净退出；
 #   globalSetup 每轮 stopAllIde 冷启新 IDE（补丁 D），但编译缓存在盘、跨 IDE 重启存活 →
 #   测试重编译走热缓存，waitForAppReady 秒过。预热失败不阻断。
@@ -138,8 +141,9 @@ jobs:
         continue-on-error: true
         run: |
           # 为什么：冷机（CI 共享 runner）首屏编译实测 >30s，会撞 waitForAppReady 的 30s 硬上限。
-          # 做什么：用独立端口 9421 冷启 IDE + 编译首屏，把 on-disk 编译缓存焐热（缓存按工程 hash
-          #   存盘、与隧道端口无关）；随后 cli quit 干净退出主 IDE。
+          # 做什么：复用测试域 ensureDevtools() 先把 IDE 冷启出来（快路径），再 automator.launch
+          #   仅建隧道 + 编译首屏，把 on-disk 编译缓存焐热（缓存按工程 hash 存盘、与隧道端口无关）；
+          #   随后 stopAllIde() 干净退出主 IDE（分段启动避免 `cli auto` 冷启 + 建隧道一步 >60s）。
           # 为什么用 9421 而非 9420：持隧道的 appservice renderer 在 cli quit / stopAllIde 的 pkill
           #   正则下都会漏杀而孤儿化（其 cmdline 中 --type=renderer 在 DT_ROOT 之前，正则不匹配）。
           #   若预热也占 9420，孤儿会一直占着 9420，测试 cli auto --auto-port 9420 监听不上。
