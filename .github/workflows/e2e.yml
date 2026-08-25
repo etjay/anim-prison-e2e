@@ -40,7 +40,7 @@ jobs:
   e2e:
     name: WeChat DevTools E2E (record + artifacts)
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       WDT_DISPLAY: ":97"   # 固定 display，避免与 runner 上其他 X 会话冲突（spike §6）
 
@@ -137,7 +137,7 @@ jobs:
         env:
           DISPLAY: ":97"          # IDE(nw, GUI) 须有 DISPLAY 才能起进程 + 建隧道（与 WDT_DISPLAY 一致）
           E2E_PREWARM_PORT: "9421"   # 预热专用隧道端口，刻意不同于测试的 9420（避免孤儿 renderer 占 9420）
-          E2E_PREWARM_TIMEOUT: "90000"   # 冷机首屏编译上限，给足（默认 90s）
+          E2E_PREWARM_TIMEOUT: "180000"   # 冷机首屏编译上限：run #11 实测 90s 仍未就绪 → 翻倍到 180s，让首屏编译真正跑完、缓存焐热
         continue-on-error: true
         run: |
           # 为什么：冷机（CI 共享 runner）首屏编译实测 >30s，会撞 waitForAppReady 的 30s 硬上限。
@@ -156,9 +156,12 @@ jobs:
       - name: Run E2E (with full screen recording)
         env:
           E2E_RECORD: "1"
+          # CI 冷机首屏重编译可能偏慢：把 waitForAppReady 的默认 30s 上限放宽到 90s。
+          # 该变量由 e2e/helpers/runtime.js 读取（不设则本地默认 30s 不变）；部署侧注入、不改变本地行为。
+          E2E_APP_READY_TIMEOUT_MS: "90000"
         run: |
-          # 注：上一步预热已焐热 on-disk 编译缓存，本步冷启 IDE 后重编译走热缓存，
-          #   waitForAppReady（30s 硬上限）在冷机上也应秒过；若仍超时见 e2e-prewarm 日志。
+          # 注：上一步预热已焐热 on-disk 编译缓存，本步冷启 IDE 后重编译走热缓存；
+          #   即便缓存仅部分焐热，E2E_APP_READY_TIMEOUT_MS=90s 也给重编译留足余量。
           # e2e/reports 需先存在（jest --outputFile 不建目录）；artifacts/screenshots 亦确保存在。
           mkdir -p e2e/reports e2e/artifacts e2e/screenshots
           # --json --outputFile 为 CLI 旗标注入，不改动 e2e/jest.config.js（e2e/ 归测试）。

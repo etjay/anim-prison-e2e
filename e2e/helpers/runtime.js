@@ -138,8 +138,10 @@ function requireMp() {
 
 async function waitForAppReady() {
   // 移植版首屏编译较慢：App 就绪前 currentPage 静默挂起（非报错）。短轮询等就绪
-  // （热 IDE 实测 ~8s，上限 30s）。
-  const deadline = Date.now() + 30000;
+  // （热 IDE 实测 ~8s）。默认上限 30s；CI 冷机首屏编译/重编译更慢，部署侧经
+  // E2E_APP_READY_TIMEOUT_MS 放宽（不设则本地默认 30s 不变，向后兼容）。
+  const appReadyTimeoutMs = Number(process.env.E2E_APP_READY_TIMEOUT_MS) || 30000;
+  const deadline = Date.now() + appReadyTimeoutMs;
   while (Date.now() < deadline) {
     try {
       await withTimeout(mp.currentPage(), 4000, 'currentPage(等待 App 就绪)');
@@ -148,7 +150,7 @@ async function waitForAppReady() {
       await sleep(500);
     }
   }
-  throw new Error('App 30s 内未就绪（currentPage 轮询超时）');
+  throw new Error(`App ${appReadyTimeoutMs}ms 内未就绪（currentPage 轮询超时）`);
 }
 
 // bootstrap：幂等（文件内）。suite 级：首文件 launch 建隧道，后续文件直连复用。
