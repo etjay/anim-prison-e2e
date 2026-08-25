@@ -4,7 +4,8 @@
 本仓库服务于 ANIM-3《搭建微信小程序 E2E 开发验证环境》一期 stage1：
 客户端环境与原生小程序骨架（T1.1，本仓库当前已交付）+ 服务端 mock（T1.2）并行。
 
-> 详细环境说明见 [docs/environment.md](docs/environment.md)（含 DevTools 安装/登录/CLI 路径、版本记录、假设清单、故障排查）。
+> 详细环境说明见 [docs/environment.md](docs/environment.md)（含 DevTools 安装/登录/CLI 路径、版本记录、假设清单、故障排查）；
+> **E2E 全量套件搭建/运行/交接** 见 [docs/handoff-e2e.md](docs/handoff-e2e.md)（T2.5：干净机步骤、`npm run e2e` 全量套件、假设清单、版本记录、FAQ）。
 
 ## 目录结构
 
@@ -28,7 +29,8 @@ anim-prison-e2e/
 ├── mock-server/              # 服务端 mock（T1.2 边界，见其 README 的接口契约）
 ├── e2e/                      # E2E 框架与用例（stage2 边界，见其 README）
 └── docs/
-    └── environment.md        # 环境搭建 / DevTools / 版本记录 / 故障排查
+    ├── environment.md        # 环境搭建 / DevTools / 版本记录 / 故障排查
+    └── handoff-e2e.md        # T2.5 E2E 交接：全量套件搭建/运行/假设清单/FAQ
 ```
 
 ## 前置依赖
@@ -96,7 +98,7 @@ const BASE_URLS = { dev: 'http://127.0.0.1:3000', preview: 'http://127.0.0.1:300
 | `npm run build` | DevTools CLI `build-npm`（校验/构建 miniprogram 工程） |
 | `npm run devtools` | DevTools CLI `open`（打开工程，便于手动走通） |
 
-> `npm run e2e` 由 stage2（T2.x）添加；`mock-server` 的运行脚本由 T1.2 提供。
+> `npm run e2e` 由 stage2（T2.x）落地（见 `e2e/README.md` 与 `docs/handoff-e2e.md` §4）；`mock-server` 的运行脚本由 T1.2 提供。
 
 ## 边界（T1.1 协调约束）
 
