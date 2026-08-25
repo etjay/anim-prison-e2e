@@ -9,7 +9,8 @@
     "build": "node scripts/devtools-build.js",
     "build:devtools": "node scripts/devtools-build.js",
     "devtools": "node scripts/devtools-build.js --open",
-    "e2e:spike": "node e2e/spike/ensure-devtools.js && DISPLAY=${WDT_DISPLAY:-:97} jest e2e/spike/spike.test.js --runInBand --forceExit"
+    "e2e": "DISPLAY=${WDT_DISPLAY:-:97} jest -c e2e/jest.config.js --runInBand",
+    "e2e:spike": "node e2e/spike/ensure-devtools.js && DISPLAY=${WDT_DISPLAY:-:97} jest e2e/spike/spike.test.js --runInBand --forceExit --globalSetup=e2e/tools/record.setup.js --globalTeardown=e2e/tools/record.teardown.js"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
