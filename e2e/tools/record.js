@@ -28,6 +28,20 @@
 //   E2E_RECORD       =1 开启（默认关）
 //   E2E_FFMPEG       ffmpeg 路径（默认按 PATH → ~/.local/bin/ffmpeg → ~/bin/ffmpeg 找）
 //   E2E_RECORD_SIZE  录像尺寸（默认 1280x800，与 ensure-devtools 的 Xvfb 屏幕一致）
+//   E2E_RECORD_MASK  二维码悬浮卡片遮罩框 X0:Y0:X1:Y1（像素，含边界）；默认 1005:135:1185:315
+//                     （见下方 QR 卡片遮罩说明），设 none/空 关闭
+//
+// 二维码悬浮卡片遮罩（ANIM-3 缺陷修复，方案③ 兜底）：
+//   DevTools 社区移植版在首屏编译成功后会弹出一张固定的「预览二维码」悬浮卡片
+//   （约 152×152px，1280×800 布局下 x≈1010-1180, y≈140-310），覆盖模拟器面板右上、
+//   持续到录制结束、遮挡全程录像。它是 IDE **运行时态**（redux window.previewComponent.show，
+//   由 WINDOW_SET_PREVIEW_COMPONENT 动作置位），**不受持久化设置门控**——实测
+//   autoPreview/keepPreviewQRCode 默认均为 false 但卡片仍弹出，故方案①（配置预设）
+//   无法可靠消除；方案②（xdotool 点击关闭）依赖精确像素 + 时序、易误点模拟器。
+//   故选方案③：在 ffmpeg x11grab 管道上加 drawbox 对固定区域加不透明遮罩——对测试
+//   逻辑零影响（只改录像滤镜）、本地与 CI 同为固定 1280×800 Xvfb 布局故卡片位置确定、
+//   确定性可验证（跑一次 E2E_RECORD=1 即可确认）。遮罩色取 IDE 暗色主题面板色，视觉
+//   上与空面板融合。若 IDE 版本漂移导致卡片移位，调大 E2E_RECORD_MASK 即可，无需改代码。
 
 const fs = require('fs');
 const os = require('os');
@@ -38,6 +52,26 @@ const X11_DISPLAY = process.env.WDT_DISPLAY || ':97';
 const RECORD_SIZE = process.env.E2E_RECORD_SIZE || '1280x800';
 const ARTIFACTS_DIR = path.join(__dirname, '..', 'artifacts');
 const STATE_FILE = path.join(ARTIFACTS_DIR, '.record.json');
+
+// 二维码悬浮卡片默认遮罩框（X0:Y0:X1:Y1，1280×800 布局）。实测卡片 x≈1022-1173、
+// y≈150-301；留 ~10px 边距全盖住卡片 + 阴影。模拟器左侧与底部操作区不在此框内。
+const DEFAULT_RECORD_MASK = '1005:135:1185:315';
+// 遮罩填充色：DevTools 暗色主题面板色（近黑深灰），使遮罩区视觉同于空面板。
+const RECORD_MASK_COLOR = '0x20242b';
+
+// 解析 E2E_RECORD_MASK。返回 { x0, y0, x1, y1 }（合法）/ null（关闭）/ { error }（格式错）。
+function parseRecordMask() {
+  const raw = (process.env.E2E_RECORD_MASK || DEFAULT_RECORD_MASK).trim();
+  if (!raw || /^none$/i.test(raw)) return null;
+  const parts = raw.split(':');
+  if (parts.length !== 4) return { error: `格式应为 X0:Y0:X1:Y1，实际="${raw}"` };
+  const nums = parts.map((s) => parseInt(s.trim(), 10));
+  if (nums.some((n) => Number.isNaN(n))) return { error: `数值无效，实际="${raw}"` };
+  const [x0, y0, x1, y1] = nums;
+  if (x1 <= x0 || y1 <= y0) return { error: `X1/Y1 须大于 X0/Y0，实际="${raw}"` };
+  if (x0 < 0 || y0 < 0 || x1 > 1280 || y1 > 800) return { error: `越界（0..1280 / 0..800），实际="${raw}"` };
+  return { x0, y0, x1, y1 };
+}
 
 function log(...a) {
   console.log('[e2e-record]', ...a);
@@ -122,6 +156,19 @@ async function startRecording() {
     /* 无上一轮状态文件属正常 */
   }
   const out = path.join(ARTIFACTS_DIR, `run-${tsName()}.mp4`);
+  // 二维码悬浮卡片遮罩（方案③）：在 x11grab 管道上加 drawbox 覆盖固定区域。
+  // 只改录像滤镜、不触碰测试逻辑；掩码无效时降级为「不遮罩但继续录像」（录屏失败不阻断测试）。
+  let mask = null;
+  let maskFilter = null;
+  const parsed = parseRecordMask();
+  if (parsed && parsed.error) {
+    log(`⚠️ E2E_RECORD_MASK 无效（${parsed.error}），本轮不加遮罩`);
+  } else if (parsed) {
+    mask = parsed;
+    const w = mask.x1 - mask.x0;
+    const h = mask.y1 - mask.y0;
+    maskFilter = `drawbox=x=${mask.x0}:y=${mask.y0}:w=${w}:h=${h}:color=${RECORD_MASK_COLOR}:t=fill`;
+  }
   const child = spawn(
     ffmpeg,
     [
@@ -130,6 +177,7 @@ async function startRecording() {
       '-video_size', RECORD_SIZE,
       '-framerate', '15',
       '-i', X11_DISPLAY,
+      ...(maskFilter ? ['-vf', maskFilter] : []),
       '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28',
       '-pix_fmt', 'yuv420p',
       '-an',
@@ -140,7 +188,10 @@ async function startRecording() {
   child.unref();
   const state = { pid: child.pid, out, ffmpeg };
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
-  log(`全程录像开始（E2E_RECORD=1）：DISPLAY=${X11_DISPLAY} → ${out}（pid=${state.pid}）`);
+  log(
+    `全程录像开始（E2E_RECORD=1）：DISPLAY=${X11_DISPLAY} → ${out}（pid=${state.pid}）` +
+      (mask ? `（QR 卡片遮罩 ${mask.x0}:${mask.y0}→${mask.x1}:${mask.y1}）` : ''),
+  );
   return state;
 }
 
