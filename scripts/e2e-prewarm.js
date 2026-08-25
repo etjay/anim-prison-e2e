@@ -41,7 +41,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const automator = require('miniprogram-automator');
 const MiniProgram = require('miniprogram-automator/out/MiniProgram').default;
 // 只读复用 e2e 域的 IDE 冷启路径：ensureDevtools = stopAllIde + ensureX11Display + ensureIde
@@ -69,6 +69,52 @@ const PROJECT_PATH = path.resolve(__dirname, '..', 'miniprogram');
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// --- 诊断工具（部署运维域）：只读探查 IDE 运行现场，便于定位冷机首屏卡点 -----------
+// 全部 best-effort：任何一条探测失败都不影响预热主流程。
+function sh(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', timeout: 10000 }).trim();
+  } catch (_) {
+    return '';
+  }
+}
+function q(p) {
+  return "'" + String(p).replace(/'/g, "'\"'\"") + "'";
+}
+function weappCacheDir() {
+  return path.join(os.homedir(), '.config', 'wechat-devtools', 'WeappCache');
+}
+function weappLogDir() {
+  return path.join(os.homedir(), '.config', 'wechat-devtools', 'WeappLog', 'logs');
+}
+function snapshot() {
+  const parts = [];
+  const procs = sh(`ps -eo comm 2>/dev/null | grep -cE '^(nw|crashpad)' `);
+  parts.push('nw_procs=' + (procs || '?'));
+  const cache = sh(`du -sh ${q(weappCacheDir())} 2>/dev/null | cut -f1`);
+  parts.push('WeappCache=' + (cache || 'none'));
+  const latest = sh(`ls -t ${q(weappLogDir())} 2>/dev/null | head -1`);
+  parts.push('latestWeappLog=' + (latest || 'none'));
+  return parts.join(' ');
+}
+function dumpDiagnostics(reason) {
+  console.log(`[e2e-prewarm][diag] ${reason} —— 现场快照：${snapshot()}`);
+  const top = sh('ps -eo pid,pcpu,etimes,comm --sort=-pcpu 2>/dev/null | head -12');
+  if (top) console.log('[e2e-prewarm][diag] 进程 top12（pid,pcpu,已运行秒,comm）：\n' + top);
+  const latest = sh(`ls -t ${q(weappLogDir())} 2>/dev/null | head -1`);
+  if (latest) {
+    const tail = sh(`tail -n 80 ${q(path.join(weappLogDir(), latest))} 2>/dev/null`);
+    if (tail) {
+      console.log(`[e2e-prewarm][diag] 最新小程序日志 ${latest}（末 80 行）：`);
+      tail.split('\n').forEach((l) => console.log('[e2e-prewarm][diag]   ' + l));
+    } else {
+      console.log(`[e2e-prewarm][diag] 最新日志 ${latest} 为空（appservice 尚无输出）`);
+    }
+  } else {
+    console.log('[e2e-prewarm][diag] WeappLog 无日志文件（appservice 未产出日志 → 首屏可能未进入编译阶段）');
+  }
 }
 function withTimeout(p, ms, label) {
   return Promise.race([
@@ -148,6 +194,7 @@ async function main() {
   // 移植版就绪前 currentPage 静默挂起（非报错），短轮询兜底，上限 READY_TIMEOUT。
   const deadline = Date.now() + READY_TIMEOUT;
   let ready = false;
+  let lastDiag = 0;
   while (Date.now() < deadline && !ready) {
     try {
       await withTimeout(mp.currentPage(), 4000, 'currentPage(首屏)');
@@ -155,12 +202,20 @@ async function main() {
     } catch (_) {
       await sleep(500);
     }
+    // 诊断：首屏迟迟不 ready 时，每 ~15s 打一次现场（进程/缓存/IDE 日志），便于定位冷机卡点。
+    const now = Date.now();
+    if (!ready && now - lastDiag >= 15000) {
+      lastDiag = now;
+      console.log(`[e2e-prewarm][diag] 首屏未就绪（已等 ${Math.round((now - t0) / 1000)}s）：${snapshot()}`);
+    }
   }
   if (!ready) {
+    dumpDiagnostics(`首屏 ${READY_TIMEOUT}ms 内未就绪（测试 bootstrap 将自行 launch 重试）`);
     console.error(`[e2e-prewarm] 首屏 ${READY_TIMEOUT}ms 内未就绪，退出（测试 bootstrap 将自行 launch 重试）。`);
     process.exit(1);
   }
   console.log(`[e2e-prewarm] 首屏就绪，编译缓存已焐热，总耗时 ${Date.now() - t0}ms。`);
+  dumpDiagnostics('首屏就绪');
 
   // 第 3 步：干净退出主 IDE：把进程留给 globalSetup 的 ensureIde 冷启（补丁 D 每轮冷启，确定性优先）。
   // 编译缓存在盘、不随 cli quit 清除 → 测试冷启新 IDE 后重编译走热缓存。

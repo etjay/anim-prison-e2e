@@ -40,7 +40,7 @@ jobs:
   e2e:
     name: WeChat DevTools E2E (record + artifacts)
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       WDT_DISPLAY: ":97"   # 固定 display，避免与 runner 上其他 X 会话冲突（spike §6）
 
@@ -133,11 +133,26 @@ jobs:
           [ -S /tmp/.X11-unix/X97 ] || { echo "Xvfb :97 未在 10s 内就绪" >&2; tail -n 20 /tmp/xvfb.log >&2 || true; exit 1; }
           echo "Xvfb :97 已就绪（socket 存在，E2E_RECORD 可全程录像）。"
 
+      - name: Record prewarm screen (diagnostic, best-effort)
+        run: |
+          # 诊断分支专用：预热阶段（冷启 IDE + 首屏编译）也录屏，失败时可回看 IDE 界面状态。
+          mkdir -p e2e/artifacts
+          FF="$(command -v ffmpeg || true)"
+          if [ -z "$FF" ] && [ -x "$HOME/.local/bin/ffmpeg" ]; then FF="$HOME/.local/bin/ffmpeg"; fi
+          if [ -z "$FF" ] && [ -x "$HOME/bin/ffmpeg" ]; then FF="$HOME/bin/ffmpeg"; fi
+          if [ -n "$FF" ]; then
+            "$FF" -y -f x11grab -video_size 1280x800 -framerate 5 -t 250 -an \
+              -i ":97" "e2e/artifacts/prewarm-$(date +%Y%m%d-%H%M%S).mp4" >/tmp/ffmpeg-prewarm.log 2>&1 &
+            echo "prewarm 录屏已后台启动（ffmpeg: $FF，最长 250s 自停）"
+          else
+            echo "ffmpeg 未找到（PATH / ~/.local/bin / ~/bin），跳过 prewarm 录屏。"
+          fi
+
       - name: Pre-warm DevTools first frame (warm on-disk compile cache)
         env:
           DISPLAY: ":97"          # IDE(nw, GUI) 须有 DISPLAY 才能起进程 + 建隧道（与 WDT_DISPLAY 一致）
           E2E_PREWARM_PORT: "9421"   # 预热专用隧道端口，刻意不同于测试的 9420（避免孤儿 renderer 占 9420）
-          E2E_PREWARM_TIMEOUT: "90000"   # 冷机首屏编译上限，给足（默认 90s）
+          E2E_PREWARM_TIMEOUT: "240000"   # 诊断：首屏上限提到 240s（实测 90s 不够，待诊断定位后回收）
         continue-on-error: true
         run: |
           # 为什么：冷机（CI 共享 runner）首屏编译实测 >30s，会撞 waitForAppReady 的 30s 硬上限。
@@ -151,6 +166,24 @@ jobs:
           #   在盘、跨重启存活 → 测试重编译走热缓存，waitForAppReady 秒过。
           # 失败处理：continue-on-error → 预热挂了测试仍跑（bootstrap 自行 launch 兜底），最坏等于无预热。
           node scripts/e2e-prewarm.js
+
+      - name: Diagnostics dump (WeappLog / cache / procs)
+        if: always()
+        run: |
+          # 诊断分支专用：预热结束后（无论成败）打 IDE 现场，定位冷机首屏卡点。
+          set -uo pipefail
+          CFG="$HOME/.config/wechat-devtools"
+          echo "=== WeappCache ==="
+          du -sh "$CFG/WeappCache" 2>/dev/null || echo "WeappCache 不存在"
+          echo "=== WeappLog 列表（最新 5）==="
+          ls -t "$CFG/WeappLog/logs" 2>/dev/null | head -5 || echo "无 WeappLog"
+          LATEST="$(ls -t "$CFG/WeappLog/logs" 2>/dev/null | head -1 || true)"
+          if [ -n "$LATEST" ]; then
+            echo "=== 最新日志 $LATEST（末 100 行）==="
+            tail -n 100 "$CFG/WeappLog/logs/$LATEST" || true
+          fi
+          echo "=== 进程（按 CPU top 15）==="
+          ps -eo pid,pcpu,etimes,comm --sort=-pcpu | head -15 || true
 
       - name: Run E2E (with full screen recording)
         env:
