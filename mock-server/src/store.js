@@ -13,6 +13,8 @@ const {
   CS_TIERS,
   MAP,
 } = require('./config');
+const { CorpusEngine } = require('./corpus');
+const { DEFAULT_CORPUS_CONFIG } = require('./corpusData');
 const time = require('./time');
 
 /**
@@ -35,6 +37,7 @@ class Store {
       sessions: {}, // token -> { userId }
       animals: {}, // userId -> animal
     };
+    this.corpus = new CorpusEngine(DEFAULT_CORPUS_CONFIG);
     // Pre-seed the pre-bound account's animal so /api/animal and /api/rating
     // work for it out of the box.
     const preBound = this.state.accounts.find((a) => a.bound);
@@ -106,6 +109,7 @@ class Store {
       daily: { dateKey: '', counts: { feed: 0, exercise: 0, play: 0 }, deltaS: 0, points: 0 },
       boundAt: now,
       lastInteractionAt: null,
+      interactionLog: [], // M8 近期互动频率（近3日 active/idle 修饰，§3.2）
       _req: {},
     };
     invite.bound = true;
@@ -142,7 +146,7 @@ class Store {
    * ΔS/points caps + requestId idempotency (gameplay baseline ANIM-13).
    * @returns {{ok, result} | {error: ERRORS[key], data?}}
    */
-  interact(userId, { action, animalId, requestId }, now) {
+  interact(userId, { action, animalId, requestId }, now, weather) {
     const animal = this.animalForUser(userId);
     if (!animal) return { error: ERRORS.INTERACTION_FAILED, data: { reason: 'no_animal' } };
     if (!ACTIONS.includes(action)) {
@@ -209,6 +213,8 @@ class Store {
     animal.daily.deltaS += deltaS;
     animal.daily.points = round1(animal.daily.points + points);
     animal.lastInteractionAt = now.toISOString();
+    animal.interactionLog.push({ ts: now.getTime(), action });
+    if (animal.interactionLog.length > 100) animal.interactionLog.shift();
 
     const result = {
       ok: true,
@@ -221,9 +227,45 @@ class Store {
       animalId: animal.id,
       action,
       message: messageFor(action),
+      // M8 即时反馈语料（P0 兜底，互动后必出；docs/corpus-system.md §3.6）。
+      corpus: this.selectCorpus(userId, animal, {
+        scene: 'feedback',
+        interaction: action,
+        clock,
+        nowMs: now.getTime(),
+        weather: weather || null,
+      }),
     };
     if (requestId) animal._req[requestId] = result;
     return { ok: true, result };
+  }
+
+  // --- 语料（M8，docs/corpus-system.md v1.0） --------------------------------
+  /**
+   * 服务端权威语料选择（§3.6）：上下文键计算 / 查池 / 去重 / 回退 / AI 配额。
+   * 近期互动频率（近 3 日 ≥3 次 = active，否则 idle，§3.2 recent 修饰）。
+   */
+  recentSignal(animal, nowMs) {
+    const cutoff = nowMs - 3 * 24 * 3600 * 1000;
+    const n = (animal.interactionLog || []).filter((e) => e.ts >= cutoff).length;
+    return n >= 3 ? 'active' : 'idle';
+  }
+
+  selectCorpus(userId, animal, { scene, interaction = null, clock, nowMs, weather = null }) {
+    return this.corpus.select(animal, { scene, interaction, weather, recent: this.recentSignal(animal, nowMs), clock, nowMs }, userId);
+  }
+
+  /**
+   * 环境/主动语料（P1 条件触发，§3.6）：进入牢房/地图/定时展示点。
+   * interaction = 当日最近一次互动类型（无 = null）。
+   */
+  environmentCorpus(userId, { scene = 'enter', weather = null }, now) {
+    const animal = this.animalForUser(userId);
+    if (!animal) return null;
+    const clock = time.inUTC8(now);
+    const log = animal.interactionLog || [];
+    const last = log.length > 0 ? log[log.length - 1].action : null;
+    return this.selectCorpus(userId, animal, { scene, interaction: last, clock, nowMs: now.getTime(), weather });
   }
 
   // --- rating -----------------------------------------------------------
@@ -239,10 +281,11 @@ class Store {
   }
 
   // --- data for /api/animal --------------------------------------------
-  animalData(userId) {
+  animalData(userId, { weather = null, now } = {}) {
     const animal = this.animalForUser(userId);
     if (!animal) return null;
-    return { animal, map: MAP, bound: true };
+    const corpus = now ? this.environmentCorpus(userId, { scene: 'enter', weather }, now) : null;
+    return { animal, map: MAP, bound: true, corpus };
   }
 
   // --- snapshot for reset/reporting -------------------------------------
@@ -268,6 +311,7 @@ class Store {
         species: t.species,
         emoji: t.emoji,
       })),
+      corpus: this.corpus.describeConfig(),
       map: MAP,
     };
   }

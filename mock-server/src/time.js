@@ -78,6 +78,26 @@ function isPlayNight(minutes) {
   return minutes >= PLAY_NIGHT_START || minutes < PLAY_NIGHT_END;
 }
 
+/**
+ * 语料 daypart 四段（M8，docs/corpus-system.md §2.2 对齐 ANIM-16 §2.2：
+ * 白天 10–22 / 夜间 22–07；早段取 07–10）。
+ * morning 07:00–10:00 / noon 10:00–15:00 / evening 15:00–22:00 / night 22:00–07:00。
+ */
+function daypartFor(minutes) {
+  if (minutes >= 7 * 60 && minutes < 10 * 60) return 'morning';
+  if (minutes >= 10 * 60 && minutes < 15 * 60) return 'noon';
+  if (minutes >= 15 * 60 && minutes < 22 * 60) return 'evening';
+  return 'night';
+}
+
+/** 满意度档位（ANIM-16 §1.4，语料触发共用）：低 0–29 / 中 30–69 / 高 70–100。 */
+function tierFor(satisfaction) {
+  const s = Number(satisfaction) || 0;
+  if (s >= 70) return 'high';
+  if (s >= 30) return 'mid';
+  return 'low';
+}
+
 module.exports = {
   effectiveNow,
   parseTime,
@@ -85,4 +105,6 @@ module.exports = {
   isFeedWindow,
   isExerciseSuggested,
   isPlayNight,
+  daypartFor,
+  tierFor,
 };

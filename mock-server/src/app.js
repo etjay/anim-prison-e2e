@@ -5,6 +5,7 @@ const express = require('express');
 const { Store } = require('./store');
 const { ERRORS } = require('./errors');
 const { DEFAULT_NOW } = require('./config');
+const { SCENES } = require('./corpus');
 const time = require('./time');
 
 /**
@@ -115,17 +116,30 @@ function buildApp({ profile, defaultNow } = {}) {
   });
 
   // --- 3. animal + map data ---------------------------------------------
+  // M8: 随响应返回一条环境/主动语料（scene=enter，docs/corpus-system.md §3.6）。
   app.get('/api/animal', requireAuth, (req, res) => {
-    const data = store.animalData(req.user.userId);
+    const now = time.effectiveNow(req, nowDefault);
+    const data = store.animalData(req.user.userId, { weather: weatherFromReq(req), now });
     if (!data) return fail(res, 'ANIMAL_NOT_FOUND');
-    return ok(res, { animal: data.animal, map: data.map, bound: true });
+    return ok(res, { animal: data.animal, map: data.map, bound: true, corpus: data.corpus });
+  });
+
+  // --- 3b. M8 环境/主动语料（P1 条件触发）--------------------------------
+  // 进入牢房/地图/定时展示点拉一条；上下文键由服务端按当前档位/昼夜/天气/最近互动计算并回退。
+  app.get('/api/corpus', requireAuth, (req, res) => {
+    const scene = typeof req.query.scene === 'string' && SCENES.includes(req.query.scene) ? req.query.scene : 'enter';
+    const now = time.effectiveNow(req, nowDefault);
+    const corpus = store.environmentCorpus(req.user.userId, { scene, weather: weatherFromReq(req) }, now);
+    if (!corpus) return fail(res, 'ANIMAL_NOT_FOUND');
+    return ok(res, { corpus });
   });
 
   // --- 4. cafeteria interaction submit ----------------------------------
+  // M8: 响应新增 corpus 字段（即时反馈语料，P0 必出，docs/corpus-system.md §3.6）。
   app.post('/api/interaction', requireAuth, (req, res) => {
     const { action, animalId, requestId } = req.body || {};
     const now = time.effectiveNow(req, nowDefault);
-    const out = store.interact(req.user.userId, { action, animalId, requestId }, now);
+    const out = store.interact(req.user.userId, { action, animalId, requestId }, now, weatherFromReq(req));
     if (out.error) return fail(res, out.error.code, out.data);
     return ok(res, out.result);
   });
@@ -135,6 +149,16 @@ function buildApp({ profile, defaultNow } = {}) {
     const rating = store.rating(req.user.userId);
     if (!rating) return fail(res, 'RATING_NOT_FOUND');
     return ok(res, { rating });
+  });
+
+  // --- ops: hot-reload corpus config (M8 §3.4：条目/去重参数/AI 配额可热更) ----
+  app.post('/api/corpus/reload', requireAuth, (req, res) => {
+    const body = req.body || {};
+    if (body.items !== undefined && !Array.isArray(body.items)) {
+      return fail(res, 'BAD_REQUEST', { reason: 'items_must_be_array' });
+    }
+    const described = store.corpus.replaceConfig(body);
+    return ok(res, { corpusConfig: described });
   });
 
   // --- ops: reset fixtures ------------------------------------------------
@@ -155,10 +179,18 @@ function routeMap() {
     'POST /api/auth/login',
     'POST /api/bind',
     'GET  /api/animal',
+    'GET  /api/corpus',
     'POST /api/interaction',
     'GET  /api/rating',
+    'POST /api/corpus/reload',
     'POST /api/reset',
   ];
+}
+
+/** M8 天气修饰（M11 未上线：mock 期由 X-Mock-Weather 头覆盖，缺省 = 不约束，D6 边缘定位）。 */
+function weatherFromReq(req) {
+  const w = req.get('x-mock-weather');
+  return w && w.trim() ? w.trim() : null;
 }
 
 module.exports = { buildApp };
