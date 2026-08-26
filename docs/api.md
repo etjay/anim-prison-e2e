@@ -127,6 +127,8 @@ curl -s http://127.0.0.1:3000/api/animal -H "Authorization: Bearer $TOKEN"
 
 对齐 `docs/gameplay/prison-interactions.md`（ANIM-13）：时段门控、每日频次上限、w_t、ΔS/行为分、requestId 幂等。
 
+> **M8 语料（待实现，ANIM-15）**：本响应将新增 `corpus` 字段（互动后即时反馈语料，P0 必出），环境/主动语料由 `GET /api/animal`（或 `GET /api/corpus`）承载；契约/触发/去重/热更规格见 `docs/corpus-system.md`。服务端实现 M8 时同步更新本节与客户端。
+
 **入参（JSON body）**
 
 | 字段 | 类型 | 必填 | 说明 |
