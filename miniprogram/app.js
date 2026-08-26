@@ -14,6 +14,8 @@ App({
     // 当前绑定/加载的动物 + 地图数据（stub 展示用）。
     animal: null,
     map: null,
+    // M8（ANIM-15）：最近一条环境/主动语料，服务端权威返回；客户端只渲染 text。
+    corpus: null,
   },
 
   onLaunch() {

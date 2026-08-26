@@ -141,6 +141,39 @@ async function main() {
   r = await post('/api/interaction', { action: 'feed' }, tC);
   check('interaction: 4th feed -> INTERACTION_DAILY_LIMIT', r.code === 'INTERACTION_DAILY_LIMIT', r);
 
+  // --- M8 语料（ANIM-15，docs/corpus-system.md v1.0）-------------------
+  await post('/api/reset', {});
+  const tK = (await post('/api/auth/login', { code: 'code_user_10001' })).token;
+  await post('/api/bind', { inviteCode: 'INVITE-ALPHA' }, tK);
+  const corp = (o) => o && o.corpus && typeof o.corpus.text === 'string' && o.corpus.text.length > 0
+    && o.corpus.source === 'rule' && typeof o.corpus.itemId === 'string' && !!o.corpus.ctx && o.corpus.ctx.tier && o.corpus.ctx.daypart;
+  r = await post('/api/interaction', { action: 'feed', requestId: 'cr-1' }, tK);
+  check('corpus: interaction 响应含 corpus（text/source=itemId/ctx，P0 必出）', r.code === 0 && corp(r), r);
+  r = await get('/api/animal', tK);
+  check('corpus: /api/animal 响应含环境语料 corpus', r.code === 0 && corp(r) && r.corpus.ctx.scene === 'enter', r);
+  r = await get('/api/corpus?scene=map', tK);
+  check('corpus: GET /api/corpus 返回 corpus + ctx', r.code === 0 && corp(r) && r.corpus.ctx.scene === 'map', r);
+  r = await get('/api/corpus?scene=bogus', tK);
+  check('corpus: 非法 scene 回退 enter（不报错）', r.code === 0 && r.corpus.ctx.scene === 'enter', r);
+  // 去重：同一上下文键（scene=tier×daypart×weather×interaction，AI 默认关）
+  // 24h 内不重复同一句 → 同 ctx 连取 4 次 itemId 两两不同（候选池 ≥2）。
+  const ids = [];
+  for (let i = 0; i < 4; i++) ids.push((await get('/api/corpus?scene=timed', tK)).corpus.itemId);
+  check('corpus: 同上下文键不重复（P0 去重）', new Set(ids).size === 4, { ids });
+  // AI 默认关：环境语料 source 恒为 rule。
+  r = await get('/api/corpus?scene=timed', tK);
+  check('corpus: AI 默认关（source=rule）', r.corpus.source === 'rule', r);
+  // AI 灰度：热更开 + 每只每日 1 条 → 连取 8 条 ai 至多 1 条（§4.2 配额）。
+  r = await post('/api/corpus/reload', { aiQuota: { enabled: true, perAnimalPerDay: 1, perAccountPerDay: 1 } }, tK);
+  check('corpus: 配置热更（AI 开/配额 1）', r.code === 0 && r.corpusConfig.aiQuota.enabled === true, r);
+  let aiCount = 0;
+  for (let i = 0; i < 8; i++) if ((await get('/api/corpus?scene=timed', tK)).corpus.source === 'ai') aiCount++;
+  check('corpus: AI 配额上限（8 取 1 条 ai）', aiCount <= 1, { aiCount });
+  r = await post('/api/corpus/reload', { aiQuota: { enabled: false } }, tK);
+  check('corpus: 热更关断（enabled=false）', r.code === 0 && r.corpusConfig.aiQuota.enabled === false, r);
+  r = await post('/api/corpus/reload', { aiQuota: { enabled: true, perAnimalPerDay: 5, perAccountPerDay: 20 } }, tK);
+  check('corpus: 配置回默认（5/20，热更可回滚）', r.code === 0 && r.corpusConfig.itemCount > 0 && r.corpusConfig.aiQuota.perAnimalPerDay === 5, r);
+
   // --- requestId idempotency: same requestId twice -> no double count ---
   await post('/api/reset', {});
   const tD = (await post('/api/auth/login', { code: 'code_user_10001' })).token;

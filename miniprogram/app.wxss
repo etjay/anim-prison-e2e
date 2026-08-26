@@ -87,3 +87,39 @@ page {
   justify-content: center;
   font-size: 40rpx;
 }
+
+/* M8 语料气泡（ANIM-15）：客户端只渲染 corpus.text；
+   source/itemId/ctx 仅作调试徽标，不参与渲染逻辑。 */
+.corpus-bubble {
+  position: relative;
+  background: #fffdf5;
+  border: 2rpx solid #e8dcae;
+  border-radius: 20rpx;
+  padding: 28rpx 28rpx 20rpx;
+  margin-top: 24rpx;
+  box-shadow: 0 4rpx 14rpx rgba(0, 0, 0, 0.05);
+}
+.corpus-bubble__tail {
+  position: absolute;
+  top: -16rpx;
+  left: 40rpx;
+  width: 0;
+  height: 0;
+  border-left: 14rpx solid transparent;
+  border-right: 14rpx solid transparent;
+  border-bottom: 16rpx solid #e8dcae;
+}
+.corpus-bubble__text {
+  font-size: 28rpx;
+  color: #5a4a1e;
+  line-height: 1.7;
+}
+.corpus-bubble__tag {
+  display: inline-block;
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  color: #b39a4e;
+  background: #f6efdb;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+}

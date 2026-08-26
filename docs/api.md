@@ -20,9 +20,11 @@
 |---|---|---|---|---|
 | 1 | POST | `/api/auth/login` | 微信 code → session stub | 否 |
 | 2 | POST | `/api/bind` | 邀请码绑定（一次性 + 重复绑定查重） | 是 |
-| 3 | GET | `/api/animal` | 动物 + 地图数据 | 是 |
-| 4 | POST | `/api/interaction` | 食堂互动（喂食/放风/陪玩） | 是 |
+| 3 | GET | `/api/animal` | 动物 + 地图数据（含环境语料 `corpus`，M8） | 是 |
+| 4 | POST | `/api/interaction` | 食堂互动（喂食/放风/陪玩；响应含即时反馈语料 `corpus`，M8） | 是 |
 | 5 | GET | `/api/rating` | 评分 / 满意度查询 | 是 |
+| 6 | GET | `/api/corpus` | 环境/主动语料（M8，P1 条件触发） | 是 |
+| — | POST | `/api/corpus/reload` | 语料配置热更（M8，运维） | 是 |
 | — | POST | `/api/reset` | 重置 fixtures | 否 |
 | — | GET | `/health` | 健康检查 | 否 |
 
@@ -109,11 +111,13 @@ curl -s -X POST http://127.0.0.1:3000/api/bind -H 'Content-Type: application/jso
   "code": 0, "message": "ok", "profile": "dev",
   "animal": { "id": "animal_user_10001", "name": "皮皮", "species": "企鹅", "type": "penguin", "emoji": "🐧", "mood": 55, "satisfaction": 55, "points": 0, "interactions": 0 },
   "map": { "id": "campus_1", "name": "校园主地图", "cells": ["🌳", "🏠", "🍲", "🪺", "🌿", "🛖"] },
-  "bound": true
+  "bound": true,
+  "corpus": { "text": "（歪着头看你）", "source": "rule", "itemId": "corp_pengu_022", "ctx": { "scene": "enter", "tier": "mid", "daypart": "noon", "weather": null, "interaction": null, "recent": "idle" } }
 }
 ```
 
 - 客户端 `home` 页渲染 `animal.emoji` / `animal.name` / `animal.species` / `animal.mood` 与 `map.cells`。
+- `corpus`（M8，ANIM-15）：环境/主动语料（`scene=enter`），服务端权威选择（上下文键/去重/回退/AI 配额）；客户端只渲染 `text`，契约见 `docs/corpus-system.md`。同上下文键 24h 内不重复同一句。
 - 未绑定用户 → `ANIMAL_NOT_FOUND`（404）；客户端有内置 stub 兜底。
 
 **curl**
@@ -127,6 +131,8 @@ curl -s http://127.0.0.1:3000/api/animal -H "Authorization: Bearer $TOKEN"
 
 对齐 `docs/gameplay/prison-interactions.md`（ANIM-13）：时段门控、每日频次上限、w_t、ΔS/行为分、requestId 幂等。
 
+> **M8 语料（已实现，ANIM-15）**：响应含 `corpus` 字段（互动后即时反馈语料，P0 必出），上下文 `scene=feedback`、`interaction=<action>`；环境/主动语料由 `GET /api/animal`（`scene=enter`）或 `GET /api/corpus`（`scene=enter|map|timed`）承载。完整契约/触发/去重/热更规格见 `docs/corpus-system.md`。
+
 **入参（JSON body）**
 
 | 字段 | 类型 | 必填 | 说明 |
@@ -134,8 +140,9 @@ curl -s http://127.0.0.1:3000/api/animal -H "Authorization: Bearer $TOKEN"
 | `animalId` | string | 否 | 动物 id（客户端从 `globalData.animal.id` 带出）；与当前绑定动物不符 → `INTERACTION_FAILED`。 |
 | `action` | string | 是 | `feed` \| `exercise` \| `play`。 |
 | `foodId` / `toyId` | string | 否 | 子项（食物/玩具）；mock 默认按「普通」喜厌结算，预留位。 |
-| `requestId` | string | 否 | 客户端生成的幂等键；同动物同 requestId 重复提交 → 幂等返回原结果（不重复计数）。 |
+| `requestId` | string | 否 | 客户端生成的幂等键；同动物同 requestId 重复提交 → 幂等返回原结果（不重复计数，含 `corpus`）。 |
 | `X-Mock-Now`（头） | string | 否 | 覆盖判定用时钟（RFC3339 或 epoch ms），UTC+8 权威。 |
+| `X-Mock-Weather`（头） | string | 否 | M8 天气修饰（M11 未上线，mock 期覆盖）：`sunny`/`rainy`/`overcast`/`snow`；缺省 = 不约束（低权重加权，非硬筛选）。 |
 
 **成功（200）**
 
@@ -143,7 +150,8 @@ curl -s http://127.0.0.1:3000/api/animal -H "Authorization: Bearer $TOKEN"
 {
   "code": 0, "message": "喂食成功", "profile": "dev",
   "ok": true, "deltaS": 6, "points": 6, "w_t": 1.5, "remaining": 2,
-  "satisfaction": 61, "pointsTotal": 6, "animalId": "animal_user_10001", "action": "feed", "idempotent": false
+  "satisfaction": 61, "pointsTotal": 6, "animalId": "animal_user_10001", "action": "feed", "idempotent": false,
+  "corpus": { "text": "（眼睛亮了）是要开饭了吗？", "source": "rule", "itemId": "corp_pengu_012", "ctx": { "scene": "feedback", "tier": "mid", "daypart": "noon", "weather": null, "interaction": "feed", "recent": "idle" } }
 }
 ```
 
@@ -154,6 +162,7 @@ curl -s http://127.0.0.1:3000/api/animal -H "Authorization: Bearer $TOKEN"
 - `remaining`：本动作当日剩余次数（本动作结算后）。
 - `satisfaction` / `pointsTotal`：结算后的累计值。
 - `idempotent`：`true` 表示命中 requestId 幂等、返回原结果。
+- `corpus`（M8）：即时反馈语料 `{ text, source, itemId, ctx }`；`ctx.tier` 按结算前满意度档位（低 0–29 / 中 30–69 / 高 70–100，对齐 ANIM-16 §1.4），`ctx.daypart` 为 UTC+8 四段（morning 07–10 / noon 10–15 / evening 15–22 / night 22–07）。同一上下文键 24h 内不重复同一句；AI 语料默认关（`source` 恒为 `rule`），见 `docs/corpus-system.md`。
 
 **互动规则（E2E 断言基准）**
 
@@ -220,6 +229,61 @@ curl -s http://127.0.0.1:3000/api/rating -H "Authorization: Bearer $TOKEN"
 
 ---
 
+## 6. 语料端点（M8，ANIM-15）
+
+> 规格全文：`docs/corpus-system.md`（v1.0 定稿）。服务端权威：上下文键计算 / 查池 / 去重 / 回退 / AI 配额全在服务端；客户端只渲染 `text`。
+
+### 6.1 环境/主动语料 `GET /api/corpus`
+
+**入参（query）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `scene` | string | 否 | `enter`（进牢房/首页）\| `map`（地图）\| `timed`（定时展示点）；缺省/非法 = `enter`。 |
+| `X-Mock-Now`（头） | string | 否 | 同 §4。 |
+| `X-Mock-Weather`（头） | string | 否 | 同 §4。 |
+
+**成功（200）**
+
+```json
+{
+  "code": 0, "message": "ok", "profile": "dev",
+  "corpus": { "text": "（叼着小鱼干塞给你）给你给你！", "source": "rule", "itemId": "corp_pengu_008", "ctx": { "scene": "map", "tier": "high", "daypart": "noon", "weather": null, "interaction": "feed", "recent": "active" } }
+}
+```
+
+- 上下文键 = `scene × tier × daypart × weather × interaction`（`interaction` = 当日最近一次互动类型，无 = null；`recent` = 近 3 日互动频率 active/idle）；服务端按 条件池 → 档位池 → 性格通用池 → 物种通用池 逐级回退，**任意上下文必出 ≥1 条**。
+- 去重：per-animal 最近已播 ID 滑窗（默认 20 条）+ 同上下文键 24h（UTC+8 日切）不重复同一句。
+- `source`：`rule`（规则语料）/ `ai`（AI 语料，P2 默认关，feature flag 热更即时关断）。
+
+**错误**：未绑定 → `ANIMAL_NOT_FOUND`（404）。
+
+**curl**
+```bash
+curl -s "http://127.0.0.1:3000/api/corpus?scene=map" -H "Authorization: Bearer $TOKEN"
+```
+
+### 6.2 语料配置热更 `POST /api/corpus/reload`（运维）
+
+**入参（JSON body，均为可选，缺省保留现值）**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `items` | array | 全量替换语料条目（`corpus_item`：id/species/animalType/text/source/pool/tags/weight/valid_from/valid_to）。 |
+| `conditionTag` | object | 条件标签字典。 |
+| `dedup` | object | 去重策略 `{ window, ctxTtlHours, fallbackOrder }`。 |
+| `aiQuota` | object | AI 配额 `{ enabled, perAnimalPerDay, perAccountPerDay }`（默认 `enabled:false`、5 条/日/只、20 条/日/账号）。 |
+
+**成功（200）**：返回热更后的配置摘要 `{ corpusConfig: { itemCount, conditionTag, dedup, aiQuota } }`。
+
+**curl**
+```bash
+# 打开 AI 语料灰度（配额 5/20）
+curl -s -X POST http://127.0.0.1:3000/api/corpus/reload -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" -d '{"aiQuota":{"enabled":true}}'
+```
+
+---
+
 ## 运维端点
 
 - `POST /api/reset`：重置到默认 fixtures（等价 `npm run reset` 的在线部分）；成功返回 fixtures 摘要。
@@ -235,7 +299,7 @@ curl -s http://127.0.0.1:3000/api/rating -H "Authorization: Bearer $TOKEN"
 | `AUTH_INVALID` | 400 / 401 | 登录 / 全部受保护端点 | 登录码无效 / token 缺失或无效 |
 | `BIND_INVALID` | 400 | `/api/bind` | 邀请码格式非法或不存在 |
 | `BIND_DUPLICATE` | 409 | `/api/bind` | 邀请码已被绑定 / 用户已绑定过动物 |
-| `ANIMAL_NOT_FOUND` | 404 | `/api/animal` | 用户无已绑动物 |
+| `ANIMAL_NOT_FOUND` | 404 | `/api/animal`、`/api/corpus` | 用户无已绑动物 |
 | `INTERACTION_NOT_IN_WINDOW` | 409 | `/api/interaction` | 喂食非餐食时段 |
 | `INTERACTION_DAILY_LIMIT` | 409 | `/api/interaction` | 当日次数达上限 |
 | `INTERACTION_IN_PROGRESS` | 409 | `/api/interaction` | 重复/在途互动 |
@@ -297,4 +361,5 @@ curl -s http://127.0.0.1:3000/api/rating -H "Authorization: Bearer $TOKEN"
 - 微信登录为 stub：`code` 直接映射测试账号，不做真实 `code2session`；客户端固定发 `stub-wechat-code`。
 - 状态纯内存；token 在进程生命周期内有效，`/api/reset` 会清除会话与互动状态。
 - 喜厌/性格 k 在 mock 中按「普通 / k=1.0」结算（游戏侧性格配置表未落库），`foodId`/`toyId` 为预留位。
+- M8 语料（ANIM-15）：条目/去重/AI 配额为内存配置（`mock-server/src/corpusData.js`），可经 `POST /api/corpus/reload` 热更；状态随 `/api/reset` 清零。AI 语料 P2 默认关（§4.3 三重控本），二期迁 MySQL 热更。
 - 真实后端集成列为二期；本环境仅预留 baseURL 切换点（dev/preview profile）。
