@@ -12,6 +12,8 @@ Page({
     loaded: false,
     resultMsg: '',
     error: '',
+    // M8（ANIM-15）：互动后即时反馈语料（scene=feedback，P0 必出），客户端只渲染 text。
+    corpus: null,
   },
 
   onShow() {
@@ -42,12 +44,14 @@ Page({
       animalId: app.globalData.animal && app.globalData.animal.id,
       action: 'feed',
     })
-      .then(() => {
-        this.setData({ resultMsg: '喂食成功！小动物心情 +10' });
+      .then((res) => {
+        // M8（ANIM-15）：互动成功响应携带即时反馈语料 corpus（P0 必出），客户端只渲染 text。
+        const corpus = (res && res.corpus) || null;
+        this.setData({ resultMsg: '喂食成功！小动物心情 +10', corpus });
         this.loadRating();
       })
       .catch((err) => {
-        this.setData({ resultMsg: '', error: (err && err.message) || '互动提交失败' });
+        this.setData({ resultMsg: '', corpus: null, error: (err && err.message) || '互动提交失败' });
       })
       .finally(() => this.setData({ submitting: false }));
   },

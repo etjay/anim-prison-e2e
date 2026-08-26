@@ -10,6 +10,13 @@
       </view>
       <view class="mood">心情 {{animal.mood}}</view>
     </view>
+
+    <!-- M8（ANIM-15）：环境/主动语料气泡，客户端只渲染 corpus.text；徽标仅作调试 -->
+    <view class="corpus-bubble" wx:if="{{corpus && corpus.text}}">
+      <view class="corpus-bubble__tail"></view>
+      <view class="corpus-bubble__text">{{corpus.text}}</view>
+      <view class="corpus-bubble__tag" wx:if="{{corpus.itemId}}">{{corpus.source || 'rule'}} · {{corpus.itemId}}</view>
+    </view>
   </view>
 
   <view class="card" wx:if="{{!loading}}">
