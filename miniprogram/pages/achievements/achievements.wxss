@@ -1,0 +1,76 @@
+.ach-card {
+  position: relative;
+  padding: 28rpx 32rpx;
+}
+.ach-card--lock {
+  opacity: 0.62;
+}
+.ach-card--recent {
+  border-color: #ff9f1c;
+}
+.ach-card--recent::before {
+  content: '';
+  position: absolute;
+  left: -2rpx;
+  top: 0;
+  bottom: 0;
+  width: 8rpx;
+  background: #ff9f1c;
+  border-radius: 8rpx;
+}
+
+.ach-head {
+  display: flex;
+  gap: 20rpx;
+}
+.ach-emoji {
+  font-size: 56rpx;
+}
+.ach-info {
+  flex: 1;
+}
+.ach-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  margin-bottom: 6rpx;
+}
+.recent-tag {
+  font-size: 22rpx;
+  background: #fff7ec;
+  border: 2rpx solid #ff9f1c;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  margin-left: 12rpx;
+}
+.ach-meta {
+  font-size: 24rpx;
+  margin-top: 10rpx;
+}
+.ach-status {
+  font-size: 24rpx;
+  color: #fff;
+  background: #444;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+  height: fit-content;
+}
+.ach-card--recent .ach-status {
+  background: #ff9f1c;
+  color: #111;
+}
+
+.ach-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+.ach-reached {
+  font-size: 24rpx;
+}
+.ach-share {
+  width: 200rpx;
+  margin-top: 0;
+  font-size: 28rpx;
+  padding: 12rpx 0;
+}

@@ -1,0 +1,57 @@
+<view class="container">
+  <!-- 顶部：当前等级徽章（橙色高亮）+ 经营评分 -->
+  <view class="card score-hero" wx:if="{{profile}}">
+    <view class="subtitle">典狱长外显等级</view>
+    <view class="level-badge guide-bg">Lv.{{profile.level}} · {{profile.name}}</view>
+    <view class="score-line">
+      <view class="score-item">
+        <view class="score-num">{{profile.points}}</view>
+        <view class="txt-gray">累计积分</view>
+      </view>
+      <view class="score-item">
+        <view class="score-num">4.2</view>
+        <view class="txt-gray">经营评分</view>
+      </view>
+      <view class="score-item">
+        <view class="score-num">{{satisfaction}}%</view>
+        <view class="txt-gray">平均满意度</view>
+      </view>
+    </view>
+    <view class="hint">累计 {{interactions}} 次经营互动，把囚犯伺候得明明白白。</view>
+  </view>
+
+  <!-- 升级进度 -->
+  <view class="card" wx:if="{{profile && profile.next}}">
+    <view class="subtitle">距 Lv.{{profile.next.level}}「{{profile.next.name}}」还差 {{profile.next.min - profile.points}} 分</view>
+    <view class="bar-track" style="margin-top: 16rpx;">
+      <view class="bar-fill bar-fill--good" style="width: {{profile.percent}}%;"></view>
+    </view>
+  </view>
+  <view class="card" wx:if="{{profile && !profile.next}}">
+    <view class="subtitle">已到顶！你就是传说中的传奇典狱长。</view>
+  </view>
+
+  <!-- 8 档升级门槛 -->
+  <view class="card">
+    <view class="title">升级门槛 · 共 8 档</view>
+    <view class="subtitle">积分越高，越是大佬。别让囚犯看扁你。</view>
+
+    <view
+      class="level-row {{item.isCurrent ? 'level-row--current' : ''}}"
+      wx:for="{{levels}}"
+      wx:key="level"
+    >
+      <view class="level-tag guide-bg" wx:if="{{item.isCurrent}}">当前</view>
+      <view class="level-no">{{item.level}}</view>
+      <view class="level-body">
+        <view class="level-name {{item.isCurrent ? 'guide' : ''}}">{{item.name}}</view>
+        <view class="txt-gray">积分 ≥ {{item.min}}</view>
+      </view>
+      <view class="bar-track level-bar">
+        <view class="bar-fill {{item.isCurrent ? 'bar-fill--good' : ''}}" style="width: {{item.percent}}%;"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="hint">本页为低保真 demo，评分为本地 stub 数据。</view>
+</view>

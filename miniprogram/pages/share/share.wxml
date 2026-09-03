@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="card" wx:if="{{ach}}">
+    <view class="title">成就分享</view>
+    <view class="subtitle">
+      分享它，让全镇街坊看看你这位典狱长有多职业。
+    </view>
+  </view>
+
+  <!-- 生成中的卡片预览 -->
+  <view class="card share-card" wx:if="{{ach}}">
+    <canvas type="2d" id="shareCanvas" class="share-canvas"></canvas>
+  </view>
+
+  <view class="txt-gray center" wx:if="{{ach}}">
+    {{ach.emoji}} {{ach.title}} · 难度 ★{{ach.level}}
+  </view>
+
+  <view class="btn btn--guide" wx:if="{{ach}}" bindtap="onSave">保存到手机</view>
+  <view class="hint center" wx:if="{{saved}}">已保存到相册，可到相册查看 / 分享。</view>
+  <view class="hint center">保存会写入系统相册，请留意授权弹窗。</view>
+</view>

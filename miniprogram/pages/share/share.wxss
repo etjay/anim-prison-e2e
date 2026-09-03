@@ -1,0 +1,12 @@
+.share-card {
+  padding: 24rpx;
+  display: flex;
+  justify-content: center;
+}
+.share-canvas {
+  width: 600rpx;
+  height: 800rpx;
+}
+.center {
+  text-align: center;
+}

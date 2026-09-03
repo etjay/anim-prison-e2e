@@ -1,0 +1,17 @@
+.card--guide {
+  border-color: #ff9f1c;
+  background: #fff7ec;
+}
+.set-label {
+  font-size: 30rpx;
+}
+.me-label {
+  font-size: 30rpx;
+}
+.ach-status {
+  font-size: 24rpx;
+  color: #fff;
+  background: #444;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+}

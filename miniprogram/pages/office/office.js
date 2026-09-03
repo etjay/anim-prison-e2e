@@ -40,4 +40,12 @@ Page({
   gotoBind() {
     wx.navigateTo({ url: '/pages/bind/bind' });
   },
+
+  gotoScore() {
+    wx.navigateTo({ url: '/pages/score/score' });
+  },
+
+  gotoEvents() {
+    wx.navigateTo({ url: '/pages/events/events' });
+  },
 });

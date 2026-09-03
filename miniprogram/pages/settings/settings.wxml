@@ -1,0 +1,53 @@
+<view class="container">
+  <view class="card">
+    <view class="title">设置</view>
+    <view class="subtitle">把监狱的琐事交给典狱长本人打理。</view>
+  </view>
+
+  <!-- 推送提醒（主设置项 -> 橙色边框） -->
+  <view class="card card--guide">
+    <view class="row">
+      <view class="set-label">
+        <view class="txt-bold">推送提醒</view>
+        <view class="txt-gray">喂食 / 事件 / 成就提醒</view>
+      </view>
+      <switch checked="{{push}}" color="#ff9f1c" bindchange="onTogglePush" />
+    </view>
+  </view>
+
+  <!-- 账号 -->
+  <view class="card">
+    <view class="set-label">
+      <view class="txt-bold">账号</view>
+    </view>
+    <view class="list-item" wx:for="{{accounts}}" wx:key="name">
+      <view class="set-label">
+        <view class="me-label">{{item.name}}</view>
+        <view class="txt-gray">{{item.value}}</view>
+      </view>
+      <view class="ach-status">已登录</view>
+    </view>
+  </view>
+
+  <!-- 隐私管理 -->
+  <view class="card">
+    <view class="list-item" bindtap="onPrivacy">
+      <view class="me-label txt-bold">隐私与用户协议</view>
+      <view class="txt-gray">预览</view>
+    </view>
+    <view class="list-item" bindtap="onReport">
+      <view class="me-label txt-bold">帮助与反馈</view>
+      <view class="txt-gray">进入 FAQ</view>
+    </view>
+  </view>
+
+  <!-- 关于 -->
+  <view class="card">
+    <view class="list-item" bindtap="onAbout">
+      <view class="me-label txt-bold">关于动物监狱</view>
+      <view class="txt-gray">v{{version}}</view>
+    </view>
+  </view>
+
+  <view class="hint">本页为低保真 demo，开关与跳转均为本地演示。</view>
+</view>

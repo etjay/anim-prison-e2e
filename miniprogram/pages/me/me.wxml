@@ -9,7 +9,7 @@
         <view class="me-name">{{nickname}}</view>
         <view class="txt-gray">在押 {{animalsCount}} 名囚犯</view>
       </view>
-      <view class="level-badge">Lv.{{level}}</view>
+      <view class="level-badge" bindtap="onLevel">Lv.{{level}} ›</view>
     </view>
   </view>
 

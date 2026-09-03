@@ -12,7 +12,13 @@
     "pages/cell-detail/cell-detail",
     "pages/card/card",
     "pages/home/home",
-    "pages/canteen/canteen"
+    "pages/canteen/canteen",
+    "pages/score/score",
+    "pages/events/events",
+    "pages/achievements/achievements",
+    "pages/share/share",
+    "pages/settings/settings",
+    "pages/help/help"
   ],
   "tabBar": {
     "color": "#888888",

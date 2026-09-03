@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="card faq-hero">
+    <view class="title"><text class="guide">常见问题</text></view>
+    <view class="subtitle">关于绑定 / 互动 / 评分的一切，都摊开讲清楚。</view>
+  </view>
+
+  <view class="card" wx:for="{{faqs}}" wx:key="id">
+    <view class="faq-q" bindtap="onToggle" data-id="{{item.id}}">
+      <view class="txt-bold">{{item.q}}</view>
+      <view class="faq-arrow {{item.open ? 'faq-arrow--open' : ''}}">{{item.open ? '−' : '+'}}</view>
+    </view>
+    <view class="faq-a" wx:if="{{item.open}}">{{item.a}}</view>
+  </view>
+
+  <view class="card">
+    <view class="subtitle">还没解决？</view>
+    <view class="btn btn--ghost" bindtap="onContact">联系看守大人（演示）</view>
+  </view>
+
+  <view class="hint">FAQ 为本地 stub 文案，用于演示可展开交互。</view>
+</view>

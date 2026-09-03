@@ -71,3 +71,15 @@
 .guide-font {
   font-weight: 600;
 }
+
+.quick-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 8rpx;
+}
+.quick-btn {
+  flex: 1;
+  margin-top: 0;
+  font-size: 28rpx;
+  padding: 18rpx 0;
+}

@@ -1,0 +1,63 @@
+.score-hero {
+  text-align: center;
+  padding: 48rpx 32rpx;
+}
+.level-badge {
+  display: inline-block;
+  margin: 20rpx 0 32rpx;
+  border-radius: 16rpx;
+  padding: 16rpx 36rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.score-line {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8rpx;
+}
+.score-item {
+  text-align: center;
+}
+.score-num {
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.level-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #eee;
+}
+.level-row:last-child { border-bottom: none; }
+.level-row--current {
+  background: #fff7ec;
+  border-radius: 12rpx;
+  padding: 24rpx 16rpx;
+  margin: 0 -8rpx;
+}
+.level-tag {
+  font-size: 20rpx;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.level-no {
+  font-size: 34rpx;
+  font-weight: 700;
+  width: 52rpx;
+  flex-shrink: 0;
+}
+.level-body {
+  flex: 1;
+}
+.level-name {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.level-bar {
+  width: 160rpx;
+  flex-shrink: 0;
+}

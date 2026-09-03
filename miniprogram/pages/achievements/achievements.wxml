@@ -1,0 +1,36 @@
+<view class="container">
+  <view class="card">
+    <view class="title">成就墙</view>
+    <view class="subtitle">把囚犯调教出花来，墙上一枚枚勋章都是你的战绩。</view>
+  </view>
+
+  <view
+    class="card ach-card {{item.done ? '' : 'ach-card--lock'}} {{item.id === recentId ? 'ach-card--recent' : ''}}"
+    wx:for="{{list}}"
+    wx:key="id"
+  >
+    <view class="ach-head">
+      <view class="ach-emoji">{{item.emoji}}</view>
+      <view class="ach-info">
+        <view class="ach-title">
+          {{item.title}}
+          <text class="recent-tag guide" wx:if="{{item.id === recentId}}">最近达成</text>
+        </view>
+        <view class="txt-gray">{{item.desc}}</view>
+        <view class="ach-meta txt-gray" wx:if="{{item.animalName}}">
+          {{item.animalEmoji}} {{item.animalName}} · 难度 ★{{item.level}}
+        </view>
+        <view class="ach-meta txt-gray" wx:else>通用成就 · 难度 ★{{item.level}}</view>
+      </view>
+      <view class="ach-status">{{item.done ? '达成' : '未达成'}}</view>
+    </view>
+
+    <view class="ach-foot">
+      <view class="ach-reached txt-gray" wx:if="{{item.done}}">达成于 {{item.reachedAt}}</view>
+      <view class="ach-reached txt-gray" wx:else>进度 {{item.percent || 0}}%</view>
+      <view class="ach-share btn btn--guide" wx:if="{{item.done}}" bindtap="onShare" data-id="{{item.id}}">分享</view>
+    </view>
+  </view>
+
+  <view class="hint">demo 为本地 stub 成就；点击「分享」可生成存图。</view>
+</view>

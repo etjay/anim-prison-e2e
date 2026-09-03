@@ -1,0 +1,62 @@
+<view class="container">
+  <view class="card">
+    <view class="title">监狱事件</view>
+    <view class="subtitle">今天也是天降大事件的一天。选吧，典狱长。</view>
+
+    <view class="status-line" wx:if="{{state}}">
+      <view class="status-chip">好感 {{state.satisfaction}}%</view>
+      <view class="status-chip guide-bg">积分 {{state.points}}</view>
+      <view class="status-chip">互动 {{state.interactions}} 次</view>
+    </view>
+  </view>
+
+  <!-- 可参与事件列表（当前可参与 -> 橙色） -->
+  <view class="card">
+    <view class="row">
+      <view class="txt-bold" style="font-size: 30rpx;">今日可参与事件</view>
+      <view class="link guide" bindtap="roll">换一批</view>
+    </view>
+
+    <view
+      class="list-item event-item {{selectedId === item.id ? 'event-item--selected' : ''}}"
+      wx:for="{{events}}"
+      wx:key="id"
+      bindtap="onSelect"
+      data-id="{{item.id}}"
+    >
+      <view class="event-emoji">{{item.emoji}}</view>
+      <view class="event-body">
+        <view class="txt-bold">{{item.title}}</view>
+        <view class="txt-gray">{{item.desc}}</view>
+      </view>
+      <view class="event-go guide">{{selectedId === item.id ? '✓' : '进入'}}</view>
+    </view>
+  </view>
+
+  <!-- 事件详情 + 分支 -->
+  <view class="card" wx:if="{{selected}}">
+    <view class="title">{{selected.emoji}} {{selected.title}}</view>
+    <view class="subtitle">{{selected.desc}}</view>
+
+    <view
+      class="option {{optionIndex === index ? 'option--chosen' : ''}}"
+      wx:for="{{selected.options}}"
+      wx:key="idx"
+      data-idx="{{index}}"
+      bindtap="onChoose"
+    >
+      <view class="option-label">{{item.label}}</view>
+      <view class="option-effect txt-gray">好感 {{item.deltaSat >= 0 ? '+' : ''}}{{item.deltaSat}} · 积分 {{item.deltaScore >= 0 ? '+' : ''}}{{item.deltaScore}}</view>
+    </view>
+
+    <view class="result-card guide-tip" wx:if="{{result}}">
+      <view class="txt-bold">结果</view>
+      <view>{{result.result}}</view>
+      <view class="txt-gray" style="margin-top: 8rpx;">好感 → {{state.satisfaction}}% · 累计积分 → {{state.points}}</view>
+    </view>
+  </view>
+
+  <view class="btn" wx:if="{{selected}}" bindtap="saveScore">确认入库（本地）</view>
+
+  <view class="hint">事件结果只改动本地 stub 好感/评分，用于演示分支交互。</view>
+</view>

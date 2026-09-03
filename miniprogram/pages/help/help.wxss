@@ -1,0 +1,33 @@
+.faq-hero {
+  text-align: center;
+  padding: 48rpx 32rpx;
+}
+.faq-goto {
+  font-size: 24rpx;
+}
+.faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  font-size: 30rpx;
+}
+.faq-arrow {
+  font-size: 44rpx;
+  color: #888;
+  width: 48rpx;
+  text-align: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.faq-arrow--open {
+  color: #ff9f1c;
+}
+.faq-a {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #eee;
+  font-size: 28rpx;
+  color: #444;
+  line-height: 1.7;
+}
