@@ -2,16 +2,55 @@
   "lazyCodeLoading": "requiredComponents",
   "pages": [
     "pages/login/login",
+    "pages/privacy/privacy",
     "pages/welcome/welcome",
     "pages/bind/bind",
+    "pages/office/office",
+    "pages/jail/jail",
+    "pages/town/town",
+    "pages/me/me",
+    "pages/cell-detail/cell-detail",
+    "pages/card/card",
     "pages/home/home",
     "pages/canteen/canteen"
   ],
+  "tabBar": {
+    "color": "#888888",
+    "selectedColor": "#ff9f1c",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/office/office",
+        "text": "办公室",
+        "iconPath": "assets/tabbar/office.png",
+        "selectedIconPath": "assets/tabbar/office-on.png"
+      },
+      {
+        "pagePath": "pages/jail/jail",
+        "text": "牢房",
+        "iconPath": "assets/tabbar/jail.png",
+        "selectedIconPath": "assets/tabbar/jail-on.png"
+      },
+      {
+        "pagePath": "pages/town/town",
+        "text": "动物镇",
+        "iconPath": "assets/tabbar/town.png",
+        "selectedIconPath": "assets/tabbar/town-on.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "我的",
+        "iconPath": "assets/tabbar/me.png",
+        "selectedIconPath": "assets/tabbar/me-on.png"
+      }
+    ]
+  },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#4a7c59",
+    "navigationBarBackgroundColor": "#111111",
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "动物监狱"
   }

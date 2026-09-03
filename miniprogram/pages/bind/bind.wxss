@@ -1,8 +1,42 @@
+.nfc-card {
+  text-align: center;
+}
+.nfc-anim {
+  position: relative;
+  width: 220rpx;
+  height: 220rpx;
+  margin: 24rpx auto;
+}
+.nfc-ring {
+  position: absolute;
+  inset: 0;
+  border: 6rpx dashed #ff9f1c;
+  border-radius: 50%;
+  animation: nfc-pulse 2s infinite linear;
+}
+.nfc-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72rpx;
+}
+@keyframes nfc-pulse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.nfc-tip {
+  margin-top: 20rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+  font-weight: 600;
+}
 .code-input {
   margin-top: 24rpx;
-  border: 2rpx solid #dfe7e0;
+  border: 2rpx solid #ccc;
   border-radius: 14rpx;
   padding: 20rpx;
   font-size: 30rpx;
-  background: #fafcfa;
+  background: #fff;
 }

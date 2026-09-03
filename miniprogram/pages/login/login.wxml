@@ -26,6 +26,6 @@
     <view class="error">{{error}}</view>
     <view class="hint">骨架期可手动走通（未启动 mock-server 时）：</view>
     <view class="btn btn--ghost" bindtap="gotoWelcome">进入欢迎页（未绑定）</view>
-    <view class="btn btn--ghost" bindtap="gotoHome">进入首页（已绑定）</view>
+    <view class="btn btn--ghost" bindtap="gotoHome">进入办公室（已绑定）</view>
   </block>
 </view>

@@ -1,0 +1,34 @@
+<view class="container" wx:if="{{animal}}">
+  <view class="card profile-card">
+    <view class="p-emoji">{{animal.emoji}}</view>
+    <view class="p-name">{{animal.name}} · 「{{animal.nickname}}」</view>
+    <view class="p-species txt-gray">{{animal.species}} · 编号寓意见下</view>
+
+    <!-- 编号：橙色高亮（本页引导元素） -->
+    <view class="p-number guide-bg">{{animal.number}}</view>
+    <view class="p-number-meaning">寓意：{{animal.numberMeaning}}</view>
+
+    <view class="p-divider"></view>
+
+    <view class="p-row">
+      <view class="p-label">牢房</view>
+      <view class="p-value">{{animal.cell}} · {{animal.floor}}</view>
+    </view>
+    <view class="p-row">
+      <view class="p-label">星座</view>
+      <view class="p-value">{{animal.zodiac}} · 生日 {{animal.birthday}}</view>
+    </view>
+    <view class="p-row">
+      <view class="p-label">MBTI</view>
+      <view class="p-value">{{animal.mbti}}</view>
+    </view>
+    <view class="p-row">
+      <view class="p-label">罪名</view>
+      <view class="p-value">{{animal.crime}}</view>
+    </view>
+
+    <view class="p-divider"></view>
+    <view class="p-intro-title">狱中登记摘要</view>
+    <view class="p-intro">{{animal.introduction}}</view>
+  </view>
+</view>

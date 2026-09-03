@@ -1,10 +1,26 @@
 <view class="container">
   <view class="card">
-    <view class="title">绑定小动物</view>
-    <view class="subtitle">输入你的专属邀请码，完成一次性绑定（每个邀请码仅可绑定一次）。</view>
+    <view class="title">收押一只新囚犯</view>
+    <view class="subtitle">拿起你的手办贴一下手机，或手输监狱编号。二选一，谁也别想跑。</view>
+  </view>
+
+  <!-- 区域一：NFC 触碰等待 -->
+  <view class="card nfc-card" bindtap="onNfc">
+    <view class="title">A. NFC 触碰</view>
+    <view class="nfc-anim">
+      <view class="nfc-ring"></view>
+      <view class="nfc-center">📶</view>
+    </view>
+    <view class="subtitle">拿起手办贴一下手机（仅支持安卓 / 鸿蒙）。</view>
+    <view wx:if="{{nfcFailed}}" class="guide-tip nfc-tip">别急，输邀请码也能进来。</view>
+  </view>
+
+  <!-- 区域二：邀请码输入兜底 -->
+  <view class="card">
+    <view class="title">B. 邀请码登记</view>
     <input
       class="code-input"
-      placeholder="请输入邀请码，如 ANIM-001"
+      placeholder="输入囚犯编号，如 ANIM-1001"
       value="{{code}}"
       confirm-type="done"
       bindinput="onCodeInput"
@@ -12,13 +28,13 @@
     />
   </view>
 
-  <view class="btn {{loading ? 'btn--disabled' : ''}}" bindtap="onConfirm">
-    {{loading ? '绑定中…' : '确认绑定'}}
+  <view class="btn btn--guide {{loading ? 'btn--disabled' : ''}}" bindtap="onConfirm">
+    {{loading ? '登记中…' : '登记入狱'}}
   </view>
 
   <block wx:if="{{error}}">
     <view class="error">{{error}}</view>
-    <view class="hint">（骨架期离线走通）</view>
-    <view class="btn btn--ghost" bindtap="gotoHome">直接进入首页</view>
+    <view class="hint">（demo：离线也能直接用内置囚犯收押）</view>
+    <view class="btn btn--ghost" bindtap="gotoHome">直接用第一只囚犯进入办公室</view>
   </block>
 </view>

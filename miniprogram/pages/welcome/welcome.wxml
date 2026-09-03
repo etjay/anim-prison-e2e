@@ -1,12 +1,23 @@
 <view class="container">
   <view class="card welcome-card">
     <view class="emoji">🐾</view>
-    <view class="title">欢迎来到动物监狱</view>
-    <view class="subtitle">
-      你还没有绑定小动物。输入专属邀请码，领养一只属于你的囚犯小动物，开始经营吧。
-    </view>
+    <view class="title">欢迎上任，新典狱长</view>
+    <view class="subtitle">这里由你说了算——前提是别让囚犯饿着。</view>
   </view>
 
-  <view class="btn" bindtap="gotoBind">用邀请码绑定小动物</view>
+  <view class="card">
+    <view class="subtitle">你的日常就是这一套循环：</view>
+    <view class="loop-row">
+      <view class="loop-step">🍲 喂食</view>
+      <view class="loop-arrow">→</view>
+      <view class="loop-step">🏃 放风</view>
+      <view class="loop-arrow">→</view>
+      <view class="loop-step">🎮 陪玩</view>
+    </view>
+    <view class="loop-flow guide">照顾 → 好感 → 经营评分 → 外显等级</view>
+    <view class="hint">把囚犯伺候好了，你的评分才好看。别指望一只饿着肚子的仓鼠替你上班。</view>
+  </view>
+
+  <view class="btn btn--guide" bindtap="gotoBind">开始看管</view>
   <view class="hint" bindtap="gotoLogin">重新登录 / 切换账号</view>
 </view>

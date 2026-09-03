@@ -1,28 +1,31 @@
-/* 全局样式 */
+/* 全局样式 —— demo 低保真（黑白灰 + 橙色引导）
+   文字 #111 / 页面底 #f4f1ea / 卡片 #fff / 边框 #ccc / 次要 #888
+   重点引导一律橙 #ff9f1c */
+
 page {
   background: #f4f1ea;
-  color: #333;
+  color: #111;
   font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
 }
 
 .container {
-  padding: 40rpx 32rpx;
+  padding: 40rpx 32rpx 60rpx;
   box-sizing: border-box;
   min-height: 100vh;
 }
 
 .card {
   background: #fff;
+  border: 2rpx solid #ccc;
   border-radius: 20rpx;
   padding: 32rpx;
   margin-bottom: 32rpx;
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
 .title {
   font-size: 40rpx;
   font-weight: 700;
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .subtitle {
@@ -31,23 +34,34 @@ page {
   line-height: 1.6;
 }
 
+/* 主操作=深灰填充，次操作=描边，引导强调=橙色填充 */
 .btn {
-  background: #4a7c59;
+  background: #111;
   color: #fff;
+  border: 2rpx solid #111;
   border-radius: 16rpx;
   font-size: 30rpx;
+  font-weight: 600;
   padding: 20rpx 0;
   text-align: center;
   margin-top: 24rpx;
 }
 
 .btn--disabled {
-  background: #b8c9bd;
+  background: #e0e0e0;
+  color: #888;
+  border-color: #e0e0e0;
 }
 
 .btn--ghost {
-  background: #eef3ef;
-  color: #4a7c59;
+  background: #fff;
+  color: #111;
+}
+
+.btn--guide {
+  background: #ff9f1c;
+  border-color: #ff9f1c;
+  color: #111;
 }
 
 .error {
@@ -57,7 +71,7 @@ page {
 }
 
 .hint {
-  color: #8a9a8f;
+  color: #888;
   font-size: 24rpx;
   margin-top: 16rpx;
   line-height: 1.6;
@@ -68,19 +82,42 @@ page {
   align-items: center;
   justify-content: space-between;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 2rpx solid #eee;
 }
 
+/* —— 橙色引导工具类（每页至少一处） —— */
+.guide {
+  color: #ff9f1c;
+}
+.guide-bg {
+  background: #ff9f1c;
+  color: #111;
+  border-color: #ff9f1c;
+}
+.guide-border {
+  border-color: #ff9f1c !important;
+}
+.guide-tip {
+  background: #fff7ec;
+  border: 2rpx solid #ff9f1c;
+  color: #b4640a;
+}
+
+/* —— 灰色文字工具类 —— */
+.txt-gray { color: #888; }
+.txt-bold { font-weight: 700; }
+
+/* —— 地图网格（首页沿用） —— */
 .map-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
 }
-
 .map-cell {
   width: calc(33.33% - 11rpx);
   aspect-ratio: 1;
-  background: #e8f0e9;
+  background: #eee;
+  border: 2rpx solid #ccc;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
@@ -88,12 +125,46 @@ page {
   font-size: 40rpx;
 }
 
-/* M8 语料气泡（ANIM-15）：客户端只渲染 corpus.text；
-   source/itemId/ctx 仅作调试徽标，不参与渲染逻辑。 */
+/* —— 通用列表项 / 满意度条 —— */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #eee;
+}
+.list-item:last-child { border-bottom: none; }
+
+.bar-track {
+  height: 16rpx;
+  border-radius: 8rpx;
+  background: #eee;
+  overflow: hidden;
+  flex: 1;
+}
+.bar-fill {
+  height: 100%;
+  background: #444;
+  border-radius: 8rpx;
+}
+.bar-fill--good { background: #ff9f1c; }
+
+.badge {
+  display: inline-block;
+  font-size: 22rpx;
+  color: #fff;
+  background: #444;
+  border-radius: 8rpx;
+  padding: 2rpx 12rpx;
+}
+
+.emoji-lg { font-size: 96rpx; }
+
+/* —— 语料气泡：黑白灰 + 橙色说话人 —— */
 .corpus-bubble {
   position: relative;
-  background: #fffdf5;
-  border: 2rpx solid #e8dcae;
+  background: #fff;
+  border: 2rpx solid #ccc;
   border-radius: 20rpx;
   padding: 28rpx 28rpx 20rpx;
   margin-top: 24rpx;
@@ -107,19 +178,19 @@ page {
   height: 0;
   border-left: 14rpx solid transparent;
   border-right: 14rpx solid transparent;
-  border-bottom: 16rpx solid #e8dcae;
+  border-bottom: 16rpx solid #ccc;
 }
 .corpus-bubble__text {
   font-size: 28rpx;
-  color: #5a4a1e;
+  color: #111;
   line-height: 1.7;
 }
 .corpus-bubble__tag {
   display: inline-block;
   margin-top: 14rpx;
   font-size: 20rpx;
-  color: #b39a4e;
-  background: #f6efdb;
+  color: #ff9f1c;
+  background: #fff7ec;
   border-radius: 8rpx;
   padding: 4rpx 14rpx;
 }

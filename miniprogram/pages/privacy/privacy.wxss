@@ -1,0 +1,25 @@
+.p-item {
+  padding: 16rpx 0;
+  border-bottom: 2rpx solid #eee;
+}
+.p-item:last-child {
+  border-bottom: none;
+}
+.p-h {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 6rpx;
+}
+.p-b {
+  font-size: 26rpx;
+  color: #444;
+  line-height: 1.6;
+}
+.p-accent {
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  margin-top: 20rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+}

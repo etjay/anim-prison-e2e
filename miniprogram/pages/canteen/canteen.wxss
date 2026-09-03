@@ -1,10 +1,64 @@
-.rating {
-  color: #f39c12;
+.clock {
   font-weight: 700;
   font-size: 32rpx;
 }
-.success {
-  color: #4a7c59;
-  font-size: 26rpx;
-  margin-top: 16rpx;
+.meal {
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #eee;
+}
+.meal:last-child {
+  border-bottom: none;
+}
+.meal-head {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
+.meal-emoji {
+  font-size: 40rpx;
+}
+.meal-name {
+  font-size: 30rpx;
+  font-weight: 700;
+}
+.meal-time {
+  font-size: 22rpx;
+}
+.meal-current {
+  font-size: 24rpx;
+  font-weight: 700;
+}
+.meal-btn {
+  padding: 16rpx 0;
+  text-align: center;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: 2rpx solid #ccc;
+  background: #fff;
+  color: #111;
+}
+.meal-btn.btn--guide {
+  background: #ff9f1c;
+  border-color: #ff9f1c;
+}
+.meal-done {
+  background: #eee;
+  color: #888;
+  border-color: #eee;
+}
+.meal-wait {
+  background: #fff;
+  color: #888;
+}
+.result-tip {
+  margin-top: 20rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 12rpx;
+}
+.rating {
+  color: #ff9f1c;
+  font-weight: 700;
+  font-size: 32rpx;
 }

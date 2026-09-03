@@ -1,0 +1,25 @@
+<view class="container">
+  <view class="card">
+    <view class="title">隐私与用户协议</view>
+    <view class="subtitle">签署前请过目这份“入狱前须知”。</view>
+  </view>
+
+  <view class="card">
+    <view class="p-item">
+      <view class="p-h">我们采集什么</view>
+      <view class="p-b">我们收集你的微信身份用于绑定与同步，不做他用。</view>
+    </view>
+    <view class="p-item">
+      <view class="p-h">我们保存什么</view>
+      <view class="p-b">你的绑定记录、互动进度，以及陪典狱长一起蹲的每一天。</view>
+    </view>
+    <view class="p-item">
+      <view class="p-h">我们绝不干的事</view>
+      <view class="p-b">不转卖、不群发，不把你的囚犯照片贴到镇上。</view>
+    </view>
+    <view class="guide-tip p-accent">同意即表示你愿意合规地“入狱”，我们保证说到做到。</view>
+  </view>
+
+  <view class="btn btn--guide" bindtap="onAccept">同意并继续</view>
+  <view class="btn btn--ghost" bindtap="onDecline">不同意</view>
+</view>

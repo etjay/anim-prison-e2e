@@ -28,6 +28,6 @@
 
   <view wx:if="{{error}}" class="hint">{{error}}</view>
 
-  <view class="btn" bindtap="gotoCanteen">去食堂互动</view>
-  <view class="hint" bindtap="gotoLogin">重新登录</view>
+  <view class="btn" bindtap="gotoCanteen">去食堂领餐</view>
+  <view class="btn btn--ghost" bindtap="gotoLogin">重新登录</view>
 </view>

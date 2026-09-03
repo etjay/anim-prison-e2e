@@ -1,5 +1,5 @@
 .env-tag {
-  color: #4a7c59;
+  color: #ff9f1c;
   font-weight: 600;
 }
 .mono {

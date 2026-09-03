@@ -1,34 +1,41 @@
 <view class="container">
   <view class="card">
-    <view class="title">食堂</view>
-    <view class="subtitle">给 {{animalName}} 提供一次互动（喂食）。</view>
-    <view class="btn {{submitting ? 'btn--disabled' : ''}}" bindtap="onFeed">
-      {{submitting ? '提交中…' : '🍲 喂食一次'}}
-    </view>
-    <view wx:if="{{resultMsg}}" class="success">{{resultMsg}}</view>
-    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <view class="title">监狱食堂</view>
+    <view class="subtitle">瞅准点来领，饭菜不等人。给 {{animalName}} 备好今日伙食。</view>
+  </view>
 
-    <!-- M8（ANIM-15）：互动后即时反馈语料气泡（P0），客户端只渲染 corpus.text -->
-    <view class="corpus-bubble" wx:if="{{corpus && corpus.text}}">
-      <view class="corpus-bubble__tail"></view>
-      <view class="corpus-bubble__text">{{corpus.text}}</view>
-      <view class="corpus-bubble__tag" wx:if="{{corpus.itemId}}">{{corpus.source || 'rule'}} · {{corpus.itemId}}</view>
+  <view class="card">
+    <view class="row">
+      <text class="txt-gray">现在时刻</text>
+      <text class="clock guide">{{now}}</text>
     </view>
+
+    <!-- 今日餐次时间轴 -->
+    <view class="meal" wx:for="{{meals}}" wx:key="key">
+      <view class="meal-info">
+        <view class="meal-head">
+          <text class="meal-emoji">{{item.emoji}}</text>
+          <text class="meal-name">{{item.label}}</text>
+          <text class="meal-time txt-gray">{{item.start}} - {{item.end}}</text>
+          <text class="meal-current guide" wx:if="{{item.current}}">现在就领</text>
+        </view>
+      </view>
+      <view
+        class="meal-btn {{item.claimed ? 'meal-done' : (item.current ? 'btn--guide' : 'meal-wait')}}"
+        bindtap="onClaim"
+        data-key="{{item.key}}"
+      >
+        {{item.claimed ? '本餐已发放' : (item.current ? '领取本餐' : '未到时段')}}
+      </view>
+    </view>
+
+    <view wx:if="{{resultMsg}}" class="guide-tip result-tip">{{resultMsg}}</view>
   </view>
 
   <view class="card" wx:if="{{rating}}">
     <view class="title">评分 / 满意度</view>
-    <view class="row">
-      <text>综合评分</text>
-      <text class="rating">{{rating.score}}</text>
-    </view>
-    <view class="row">
-      <text>满意度</text>
-      <text>{{rating.satisfaction}}%</text>
-    </view>
-    <view class="row">
-      <text>互动次数</text>
-      <text>{{rating.count}}</text>
-    </view>
+    <view class="row"><text class="txt-gray">综合评分</text><text class="rating">{{rating.score}}</text></view>
+    <view class="row"><text class="txt-gray">满意度</text><text>{{rating.satisfaction}}%</text></view>
+    <view class="row"><text class="txt-gray">互动次数</text><text>{{rating.count}}</text></view>
   </view>
 </view>

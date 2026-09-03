@@ -1,0 +1,59 @@
+.profile-card {
+  text-align: center;
+}
+.p-emoji {
+  font-size: 140rpx;
+}
+.p-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  margin-top: 8rpx;
+}
+.p-species {
+  margin-top: 6rpx;
+}
+.p-number {
+  display: inline-block;
+  margin-top: 24rpx;
+  font-size: 44rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  padding: 16rpx 36rpx;
+}
+.p-number-meaning {
+  color: #b4640a;
+  font-size: 26rpx;
+  margin-top: 16rpx;
+}
+.p-divider {
+  height: 2rpx;
+  background: #eee;
+  margin: 24rpx 0;
+}
+.p-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 14rpx 0;
+  font-size: 28rpx;
+  text-align: left;
+}
+.p-label {
+  color: #888;
+}
+.p-value {
+  flex: 1;
+  text-align: right;
+  padding-left: 24rpx;
+}
+.p-intro-title {
+  font-size: 26rpx;
+  color: #888;
+  text-align: left;
+}
+.p-intro {
+  font-size: 28rpx;
+  line-height: 1.7;
+  text-align: left;
+  margin-top: 8rpx;
+  color: #111;
+}

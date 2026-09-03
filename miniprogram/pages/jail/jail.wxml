@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="title">牢房点名册</view>
+  <view class="subtitle">今日可互动 喂2 / 放1 / 玩3 · 点进去管教</view>
+
+  <!-- 空状态 -->
+  <view class="card" wx:if="{{!loading && animals.length === 0}}">
+    <view class="emoji-lg">🔒</view>
+    <view class="title">尚未收押</view>
+    <view class="subtitle">尚未收押任何囚犯。空牢房安静得可怜，去绑一位吧。</view>
+    <view class="btn btn--guide" bindtap="gotoCellDetail" data-id="1024">去看看内置囚犯</view>
+  </view>
+
+  <view class="card" wx:for="{{animals}}" wx:key="id" bindtap="gotoCellDetail" data-id="{{item.id}}">
+    <view class="list-item">
+      <view class="thumb">{{item.emoji}}</view>
+      <view class="info">
+        <view class="row-top">
+          <view class="animal-name">{{item.name}} <text class="nickname txt-gray">{{item.nickname}}</text></view>
+          <view class="remain-badge">喂{{item.interactions.feed}}/放{{item.interactions.walk}}/玩{{item.interactions.play}}</view>
+        </view>
+        <view class="bar-track">
+          <view class="bar-fill" style="width: {{item.satisfaction}}%;"></view>
+        </view>
+        <view class="meta-row">
+          <text class="txt-gray">{{item.cell}} · 满意 {{item.satisfaction}}%</text>
+          <text class="guide-tip need-tip" wx:if="{{item.needFeed}}">该喂饭了</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

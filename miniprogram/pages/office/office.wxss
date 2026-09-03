@@ -1,0 +1,73 @@
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-top: 24rpx;
+}
+.score-num {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #ff9f1c;
+}
+.score-meta {
+  flex: 1;
+  font-size: 24rpx;
+}
+.score-count {
+  color: #888;
+  font-size: 22rpx;
+  margin-top: 8rpx;
+}
+.level-badge {
+  background: #111;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 700;
+  border-radius: 12rpx;
+  padding: 12rpx 22rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 8rpx 0 20rpx;
+}
+
+.animal-scroll {
+  white-space: nowrap;
+  margin-bottom: 32rpx;
+}
+.animal-card {
+  display: inline-block;
+  width: 280rpx;
+  background: #fff;
+  border: 2rpx solid #ccc;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-right: 20rpx;
+  vertical-align: top;
+}
+.animal-emoji {
+  font-size: 64rpx;
+}
+.animal-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin-top: 8rpx;
+}
+.animal-cell {
+  font-size: 22rpx;
+  margin: 4rpx 0 12rpx;
+}
+.animal-mood {
+  font-size: 22rpx;
+  margin-top: 10rpx;
+}
+.best-tip {
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  text-align: center;
+}
+.guide-font {
+  font-weight: 600;
+}

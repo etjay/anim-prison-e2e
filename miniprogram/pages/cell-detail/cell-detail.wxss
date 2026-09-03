@@ -1,0 +1,83 @@
+.head-card {
+  padding-top: 28rpx;
+}
+.head-top {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+.head-emoji {
+  font-size: 96rpx;
+}
+.head-info {
+  flex: 1;
+}
+.head-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+.card-link {
+  color: #ff9f1c;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+.sat-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 26rpx;
+  margin: 24rpx 0 10rpx;
+}
+.sat-num {
+  font-weight: 700;
+  color: #ff9f1c;
+}
+.sat-mood {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  margin: 8rpx 0 20rpx;
+}
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #eee;
+}
+.action-row:last-child {
+  border-bottom: none;
+}
+.action-emoji {
+  font-size: 48rpx;
+}
+.action-label {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.action-state {
+  font-size: 24rpx;
+  border-radius: 8rpx;
+  padding: 6rpx 16rpx;
+}
+.act-good {
+  background: #ff9f1c;
+  color: #111;
+  font-weight: 700;
+}
+.act-bad {
+  background: #eee;
+  color: #888;
+}
+
+.result-card {
+  border-color: #ff9f1c;
+}
+.result-kv {
+  font-size: 28rpx;
+}

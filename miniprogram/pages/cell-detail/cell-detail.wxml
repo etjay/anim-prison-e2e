@@ -1,0 +1,59 @@
+<view class="container" wx:if="{{animal}}">
+  <!-- 顶部：大头像 + 名称 + 满意度条 -->
+  <view class="card head-card">
+    <view class="head-top">
+      <view class="head-emoji">{{animal.emoji}}</view>
+      <view class="head-info">
+        <view class="head-title">{{animal.cell}} · 「{{animal.nickname}}」{{animal.name}}</view>
+        <view class="txt-gray">{{animal.species}} · {{animal.mbti}} · 楼上 {{animal.floor}}</view>
+      </view>
+      <view class="card-link" bindtap="gotoCard">囚犯卡 ›</view>
+    </view>
+    <view class="sat-label">
+      <text>满意度</text>
+      <text class="sat-num">{{animal.satisfaction}}%</text>
+    </view>
+    <view class="bar-track">
+      <view class="bar-fill bar-fill--good" style="width: {{animal.satisfaction}}%;"></view>
+    </view>
+    <view class="txt-gray sat-mood">心情：{{animal.mood}} · 战绩：{{animal.kd}}</view>
+  </view>
+
+  <!-- 中部：三个互动按钮，各带剩余次数 -->
+  <view class="section-title">各项管教（今日剩余）</view>
+  <view class="card">
+    <view
+      class="action-row"
+      wx:for="{{actions}}"
+      wx:key="key"
+      bindtap="onAction"
+      data-key="{{item.key}}"
+    >
+      <view class="action-emoji">{{item.emoji}}</view>
+      <view class="action-label">{{item.label}} ×{{item.remain}}</view>
+      <view class="action-state {{item.available ? 'act-good' : 'act-bad'}}">
+        {{item.available ? '可互动' : item.windowTip}}
+      </view>
+    </view>
+    <view class="hint" wx:if="{{!feedWindow}}">现在不是饭点，喂食按钮暂不可用。</view>
+  </view>
+
+  <!-- 底部：互动结果卡 -->
+  <view class="card result-card" wx:if="{{result}}">
+    <view class="title">互动结果</view>
+    <view class="row result-kv">
+      <text class="txt-gray">{{result.emoji}} {{result.actionLabel}}</text>
+      <text class="guide">好感 Δ+{{result.delta}}</text>
+    </view>
+    <view class="row result-kv">
+      <text class="txt-gray">本次得分</text>
+      <text class="guide">+{{result.score}}</text>
+    </view>
+    <view class="corpus-bubble">
+      <view class="corpus-bubble__tail"></view>
+      <view class="corpus-bubble__text">{{animal.emoji}} {{animal.name}}：「{{result.corpus}}」</view>
+    </view>
+  </view>
+
+  <view class="btn btn--ghost" bindtap="gotoCard">查看囚犯卡片</view>
+</view>

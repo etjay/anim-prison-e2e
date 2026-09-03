@@ -12,9 +12,10 @@
 }
 .animal-species {
   font-size: 24rpx;
-  color: #999;
+  color: #888;
 }
 .mood {
-  color: #4a7c59;
+  color: #ff9f1c;
   font-size: 26rpx;
+  font-weight: 700;
 }

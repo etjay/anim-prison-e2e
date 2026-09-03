@@ -1,0 +1,49 @@
+<view class="container">
+  <!-- 顶部：监狱经营评分 + 外显等级徽章 -->
+  <view class="card">
+    <view class="title">典狱长办公室</view>
+    <view class="subtitle">全员点名！今天谁最听话？</view>
+
+    <view class="score-row">
+      <view class="score-num">{{score.score}}</view>
+      <view class="score-meta">
+        <view class="txt-gray">监狱经营评分</view>
+        <view class="score-count">{{score.count}} 次互动</view>
+      </view>
+      <view class="level-badge">Lv.{{score.level}}</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="card" wx:if="{{!loading && animals.length === 0}}">
+    <view class="title">监狱空荡荡</view>
+    <view class="subtitle">监狱空荡荡，先绑一只小动物进来撑场面。</view>
+    <view class="guide-tip guide-font">去绑定你的第一位囚犯</view>
+    <view class="btn btn--guide" bindtap="gotoBind">去绑定囚犯</view>
+  </view>
+
+  <!-- 中段：横向动物卡片列表 -->
+  <view class="section-title" wx:if="{{animals.length}}">监狱在押囚犯</view>
+  <scroll-view scroll-x class="animal-scroll" wx:if="{{animals.length}}">
+    <view
+      class="animal-card"
+      wx:for="{{animals}}"
+      wx:key="id"
+      bindtap="gotoCellDetail"
+      data-id="{{item.id}}"
+    >
+      <view class="animal-emoji">{{item.emoji}}</view>
+      <view class="animal-name">{{item.name}}</view>
+      <view class="animal-cell txt-gray">{{item.cell}}</view>
+      <view class="bar-track">
+        <view class="bar-fill bar-fill--good" style="width: {{item.satisfaction}}%;"></view>
+      </view>
+      <view class="animal-mood txt-gray">心情 {{item.mood}} · {{item.satisfaction}}%</view>
+      <view class="guide-tip best-tip" wx:if="{{best && item.id === best.id}}">它今天状态不错</view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部：快捷入口 -->
+  <view class="btn btn--ghost" bindtap="gotoJail">去放风 / 查牢房</view>
+  <view class="btn" bindtap="gotoCanteen">去喂食（食堂）</view>
+</view>

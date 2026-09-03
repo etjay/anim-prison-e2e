@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="title">典狱长办公室 · 我的</view>
+  <view class="subtitle">账号与设置（后续扩展）</view>
+
+  <view class="card">
+    <view class="me-head">
+      <view class="me-avatar">🕵️</view>
+      <view class="me-info">
+        <view class="me-name">{{nickname}}</view>
+        <view class="txt-gray">在押 {{animalsCount}} 名囚犯</view>
+      </view>
+      <view class="level-badge">Lv.{{level}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="list-item" wx:for="{{items}}" wx:key="key" bindtap="onItemTap" data-key="{{item.key}}">
+      <view class="me-label">{{item.label}}</view>
+      <view class="me-value txt-gray">{{item.value}}</view>
+    </view>
+  </view>
+
+  <view class="hint">本页为低保真 demo，设置项为占位。</view>
+</view>

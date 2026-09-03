@@ -5,3 +5,27 @@
   font-size: 96rpx;
   margin-bottom: 16rpx;
 }
+.loop-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  margin: 24rpx 0;
+}
+.loop-step {
+  background: #fff;
+  border: 2rpx solid #ccc;
+  border-radius: 12rpx;
+  padding: 12rpx 20rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+.loop-arrow {
+  color: #888;
+}
+.loop-flow {
+  font-size: 30rpx;
+  font-weight: 700;
+  text-align: center;
+  margin: 16rpx 0 8rpx;
+}

@@ -1,0 +1,24 @@
+<view class="container">
+  <view class="title">动物镇街坊</view>
+  <view class="subtitle">囚犯们的八卦集散地，管好你的嘴，也管好他们的。</view>
+
+  <view class="btn btn--guide" bindtap="onPublish">📢 广播出去</view>
+
+  <!-- 空状态 -->
+  <view class="card" wx:if="{{feed.length === 0}}">
+    <view class="emoji-lg">🏘️</view>
+    <view class="title">镇上还没人唠嗑</view>
+    <view class="subtitle">镇上还没人唠嗑，你来开个头。</view>
+  </view>
+
+  <!-- 信息流卡片 -->
+  <view class="card" wx:for="{{feed}}" wx:key="id">
+    <view class="post-pub">{{item.publisher}} · <text class="txt-gray">监狱内网</text></view>
+    <view class="post-content">{{item.content}}</view>
+    <view class="post-foot">
+      <view class="like" data-index="{{index}}" bindtap="onLike">
+        {{item.liked ? '❤️' : '🤍'}} 给个赞 · {{item.likes}}
+      </view>
+    </view>
+  </view>
+</view>
