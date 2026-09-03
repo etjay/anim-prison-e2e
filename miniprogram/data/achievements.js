@@ -84,7 +84,6 @@ const REACHED_AT = [
 ];
 
 function build() {
-  const animals = getAll();
   let doneIdx = 0;
   return BASE.map((a) => {
     const animal = a.animalId ? animalById(a.animalId) : null;

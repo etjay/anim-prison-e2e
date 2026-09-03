@@ -13,8 +13,6 @@
 //            result     选择后返回的一句结果文案
 //   corpus   随机结果语料（选择后随机吐一句口吻）
 
-const { getAll } = require('./animals');
-
 const EVENTS = [
   {
     id: 'ev-escape',

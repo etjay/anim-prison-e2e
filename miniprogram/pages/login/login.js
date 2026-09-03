@@ -29,8 +29,8 @@ Page({
         app.globalData.token = (res && res.token) || 'stub-token';
         app.globalData.bound = !!(res && res.bound);
         this.setData({ ok: true });
-        // 未绑定进欢迎页，已绑定进办公室（首页 tab）。
-        wx.reLaunch({ url: app.globalData.bound ? '/pages/office/office' : '/pages/welcome/welcome' });
+        // 未绑定进欢迎页，已绑定进首页（e2e 契约：bound → home）。
+        wx.reLaunch({ url: app.globalData.bound ? '/pages/home/home' : '/pages/welcome/welcome' });
       })
       .catch((err) => {
         // 骨架期允许离线手动走通：失败不阻塞，给出提示 + 手动入口。
@@ -44,10 +44,10 @@ Page({
     wx.reLaunch({ url: '/pages/welcome/welcome' });
   },
 
-  // 手动走通用：直接进入办公室 tab（已绑定态）。
+  // 手动走通用：直接进入首页（已绑定态）。
   gotoHome() {
     const app = getApp();
     app.globalData.bound = true;
-    wx.switchTab({ url: '/pages/office/office' });
+    wx.reLaunch({ url: '/pages/home/home' });
   },
 });

@@ -1,6 +1,6 @@
 // 事件页：随机事件列表 -> 点开详情 -> 分支选择 -> 本地改好感/评分。
 // demo 读 data/events.js，事件结果也在本地累加，橙色突出“可参与”事件。
-const { EVENTS, randomEvent, buildState } = require('../../data/events');
+const { EVENTS, buildState } = require('../../data/events');
 
 function pickUnique(n) {
   const pool = EVENTS.slice();

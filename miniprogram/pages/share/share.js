@@ -108,7 +108,7 @@ Page({
             this.setData({ saved: true });
             wx.showToast({ title: '已保存到相册', icon: 'success' });
           },
-          fail: (err) => {
+          fail: () => {
             wx.showToast({ title: '保存失败，请检查相册权限', icon: 'none' });
           },
         });
