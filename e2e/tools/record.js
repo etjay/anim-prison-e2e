@@ -61,16 +61,9 @@ const RECORD_MASK_COLOR = '0x20242b';
 
 // 解析 E2E_RECORD_MASK。返回 { x0, y0, x1, y1 }（合法）/ null（关闭）/ { error }（格式错）。
 function parseRecordMask() {
-  const raw = (process.env.E2E_RECORD_MASK || DEFAULT_RECORD_MASK).trim();
-  if (!raw || /^none$/i.test(raw)) return null;
-  const parts = raw.split(':');
-  if (parts.length !== 4) return { error: `格式应为 X0:Y0:X1:Y1，实际="${raw}"` };
-  const nums = parts.map((s) => parseInt(s.trim(), 10));
-  if (nums.some((n) => Number.isNaN(n))) return { error: `数值无效，实际="${raw}"` };
-  const [x0, y0, x1, y1] = nums;
-  if (x1 <= x0 || y1 <= y0) return { error: `X1/Y1 须大于 X0/Y0，实际="${raw}"` };
-  if (x0 < 0 || y0 < 0 || x1 > 1280 || y1 > 800) return { error: `越界（0..1280 / 0..800），实际="${raw}"` };
-  return { x0, y0, x1, y1 };
+  // 二维码浮窗改为由 close-qr 工具真正关闭（见同目录 close-qr.js），
+  // 不再用黑块遮罩。任何 E2E_RECORD_MASK 设置均返回 null（关闭遮罩）。
+  return null;
 }
 
 function log(...a) {
