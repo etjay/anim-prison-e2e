@@ -11,10 +11,14 @@
 // 要求——残留 auto tunnel 会让 automator 端口探测选错端口）。
 const { ensureDevtools } = require('./tools/ensure-devtools');
 const { startRecording } = require('./tools/record');
+const { closeLoginWindow } = require('./tools/close-qr');
 
 module.exports = async function globalSetup() {
   // 全程录像（E2E_RECORD=1 时）：先于 ensureDevtools 启动，录像覆盖 Xvfb 启动、
   // IDE 冷启、打开工程编译与全程测试；未开启时 no-op（零开销）。
   await startRecording();
   await ensureDevtools();
+  // 关闭登录/授权/二维码浮层（ANIM-25）：IDE 冷启后浮窗出现，此时关闭，录像即拿到
+  // 干净预览区。best-effort——关闭失败不阻断套件（录屏目标非断言条件）。
+  closeLoginWindow();
 };

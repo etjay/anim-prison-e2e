@@ -76,6 +76,13 @@ jobs:
             libexpat1
           sudo ldconfig
 
+      - name: Install close-qr X window deps (python-xlib)
+        run: |
+          # close-qr.py（ANIM-25）用 python-xlib 枚举并关闭登录/二维码浮层窗口。
+          python3 -m pip install --break-system-packages python-xlib 2>/dev/null \
+            || python3 -m pip install --user --break-system-packages python-xlib
+          python3 -c "import Xlib; print('python-xlib', Xlib.__version__)"
+
       - name: Install root node deps
         run: npm ci
 
