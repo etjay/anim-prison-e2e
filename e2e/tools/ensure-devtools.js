@@ -21,6 +21,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
+const { seedLoginStub } = require('./login-stub');
 
 const HOME = os.homedir();
 const X11_DISPLAY = process.env.WDT_DISPLAY || ':97';
@@ -171,7 +172,7 @@ function ensureIde() {
 
 // 幂等：Xvfb/IDE 已在运行时走热启动路径，不重复冷启。
 // 供 Jest globalSetup 调用；npm 入口（ensure 作为独立前置步骤）也调用同一入口。
-function ensureDevtools() {
+async function ensureDevtools() {
   if (!fs.existsSync(CLI)) {
     console.error(`[ensure-devtools] ❌ 未找到 CLI：${CLI}\n   用 scripts/install-devtools.sh 安装，或设 DEVTOOLS_CLI/DEVTOOLS_ROOT。`);
     process.exit(2);
@@ -183,15 +184,19 @@ function ensureDevtools() {
   // 每轮干净重启 IDE，避免残留 auto tunnel 干扰 automator 端口探测（补丁 D）。
   stopAllIde();
   const x = ensureX11Display();
+  // ANIM-25：冷启前注入登录态（已登录零干扰；未登录写 stub，消除登录/授权浮层）。
+  // 必须在 stopAllIde 之后（leveldb 无锁）、ensureIde 之前（冷启读取该状态）。
+  const stub = await seedLoginStub();
   const i = ensureIde();
   log(`CLI=${CLI}`);
   log(`DISPLAY=${X11_DISPLAY}（测试进程请带此 DISPLAY 运行）`);
+  log(`登录态 stub：applied=${stub.applied} loggedInBefore=${stub.loggedInBefore}（${stub.reason}）`);
   if (x || i) log('冷启动完成。');
   else log('均为热启动（Xvfb/IDE 已在运行）。');
 }
 
-function main() {
-  ensureDevtools();
+async function main() {
+  await ensureDevtools();
 }
 
 if (require.main === module) {

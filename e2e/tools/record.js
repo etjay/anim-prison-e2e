@@ -30,6 +30,9 @@
 //   E2E_RECORD_SIZE  录像尺寸（默认 1280x800，与 ensure-devtools 的 Xvfb 屏幕一致）
 //   E2E_RECORD_MASK  二维码悬浮卡片遮罩框 X0:Y0:X1:Y1（像素，含边界）；默认 1005:135:1185:315
 //                     （见下方 QR 卡片遮罩说明），设 none/空 关闭
+//   E2E_RECORD_LOGIN_MASK  登录/授权浮层兑底遮罩框（ANIM-25 T3）。默认 auto：由
+//                     globalSetup 在 seedLoginStub 之后传入「冷启前未登录」判定结果
+//                     自动开关；none/0 强制关；X0:Y0:X1:Y1 强制开（几何覆盖默认值）。
 //
 // 二维码悬浮卡片遮罩（ANIM-3 缺陷修复，方案③ 兜底）：
 //   DevTools 社区移植版在首屏编译成功后会弹出一张固定的「预览二维码」悬浮卡片
@@ -59,18 +62,40 @@ const DEFAULT_RECORD_MASK = '1005:135:1185:315';
 // 遮罩填充色：DevTools 暗色主题面板色（近黑深灰），使遮罩区视觉同于空面板。
 const RECORD_MASK_COLOR = '0x20242b';
 
+// 登录/授权浮层兑底遮罩（ANIM-25 T3，默认几何 1280×800 布局，见下方说明）。
+// 实测（本机 msojocs 社区版，项目 appid="touristappid"）：冷启后 IDE 在编辑器区
+// 中央弹「更改 AppID 失败 (touristappid) / Error: tourist appid」对话框
+// （x≈443-818，y≈48-192）；未登录时同区域还会出现登录/扫码浮层。两者都不遮挡
+// 右侧模拟器预览区（x≈880 起），仅在录像中构成视觉干扰。取对话框外扩 ~13px：
+// x0=430, y0=40, x1=830, y1=205。
+const DEFAULT_LOGIN_MASK = '430:40:830:205';
+
 // 解析 E2E_RECORD_MASK。返回 { x0, y0, x1, y1 }（合法）/ null（关闭）/ { error }（格式错）。
 function parseRecordMask() {
-  const raw = (process.env.E2E_RECORD_MASK || DEFAULT_RECORD_MASK).trim();
-  if (!raw || /^none$/i.test(raw)) return null;
-  const parts = raw.split(':');
-  if (parts.length !== 4) return { error: `格式应为 X0:Y0:X1:Y1，实际="${raw}"` };
-  const nums = parts.map((s) => parseInt(s.trim(), 10));
-  if (nums.some((n) => Number.isNaN(n))) return { error: `数值无效，实际="${raw}"` };
+  return parseMaskBox(process.env.E2E_RECORD_MASK || DEFAULT_RECORD_MASK);
+}
+
+// 通用遮罩框解析。返回 { x0, y0, x1, y1 }（合法）/ null（关闭）/ { error }（格式错）。
+function parseMaskBox(raw) {
+  const s = (raw || '').trim();
+  if (!s || /^none$/i.test(s) || /^0$/.test(s)) return null;
+  const parts = s.split(':');
+  if (parts.length !== 4) return { error: `格式应为 X0:Y0:X1:Y1，实际="${s}"` };
+  const nums = parts.map((t) => parseInt(t.trim(), 10));
+  if (nums.some((n) => Number.isNaN(n))) return { error: `数值无效，实际="${s}"` };
   const [x0, y0, x1, y1] = nums;
-  if (x1 <= x0 || y1 <= y0) return { error: `X1/Y1 须大于 X0/Y0，实际="${raw}"` };
-  if (x0 < 0 || y0 < 0 || x1 > 1280 || y1 > 800) return { error: `越界（0..1280 / 0..800），实际="${raw}"` };
+  if (x1 <= x0 || y1 <= y0) return { error: `X1/Y1 须大于 X0/Y0，实际="${s}"` };
+  if (x0 < 0 || y0 < 0 || x1 > 1280 || y1 > 800) return { error: `越界（0..1280 / 0..800），实际="${s}"` };
   return { x0, y0, x1, y1 };
+}
+
+// 登录浮层遮罩决策：E2E_RECORD_LOGIN_MASK=auto（默认）时取 opts.loginMask
+// （globalSetup 在 seedLoginStub 后传入「冷启前未登录」）；none/0 强制关；坐标强制开。
+function resolveLoginMask(opts) {
+  const env = (process.env.E2E_RECORD_LOGIN_MASK || 'auto').trim();
+  if (/^none$/i.test(env) || /^0$/.test(env)) return null;
+  if (env === 'auto') return (opts && opts.loginMask) ? DEFAULT_LOGIN_MASK : null;
+  return env;
 }
 
 function log(...a) {
@@ -122,8 +147,10 @@ function pidAlive(pid) {
   }
 }
 
-// 在 globalSetup 调用（ensureDevtools 之前）。返回 state（{ pid, out }）或 null。
-async function startRecording() {
+// 在 globalSetup 调用（ensureX11Display 之后、ensureIde 之前；X socket 已就绪）。
+// opts.loginMask：ANIM-25「冷启前未登录」判定（globalSetup 在 seedLoginStub 后传入），
+// 控制登录浮层兑底遮罩的 auto 开关。返回 state（{ pid, out }）或 null。
+async function startRecording(opts) {
   if (process.env.E2E_RECORD !== '1') return null;
   const ffmpeg = resolveFfmpeg();
   if (!ffmpeg) {
@@ -158,8 +185,9 @@ async function startRecording() {
   const out = path.join(ARTIFACTS_DIR, `run-${tsName()}.mp4`);
   // 二维码悬浮卡片遮罩（方案③）：在 x11grab 管道上加 drawbox 覆盖固定区域。
   // 只改录像滤镜、不触碰测试逻辑；掩码无效时降级为「不遮罩但继续录像」（录屏失败不阻断测试）。
+  const filters = [];
+  let maskLog = '';
   let mask = null;
-  let maskFilter = null;
   const parsed = parseRecordMask();
   if (parsed && parsed.error) {
     log(`⚠️ E2E_RECORD_MASK 无效（${parsed.error}），本轮不加遮罩`);
@@ -167,8 +195,22 @@ async function startRecording() {
     mask = parsed;
     const w = mask.x1 - mask.x0;
     const h = mask.y1 - mask.y0;
-    maskFilter = `drawbox=x=${mask.x0}:y=${mask.y0}:w=${w}:h=${h}:color=${RECORD_MASK_COLOR}:t=fill`;
+    filters.push(`drawbox=x=${mask.x0}:y=${mask.y0}:w=${w}:h=${h}:color=${RECORD_MASK_COLOR}:t=fill`);
+    maskLog = `（QR 卡片遮罩 ${mask.x0}:${mask.y0}→${mask.x1}:${mask.y1}）`;
   }
+  // 登录/授权浮层兑底遮罩（ANIM-25 T3）：冷启前未登录（含 stub 写入）时开启——
+  // 主修复（login-stub）失效/IDE 版本漂移时，浮层仍会被这块不透明遮罩盖住。
+  const loginRaw = resolveLoginMask(opts);
+  if (loginRaw) {
+    const lp = parseMaskBox(loginRaw);
+    if (lp && lp.error) {
+      log(`⚠️ E2E_RECORD_LOGIN_MASK 无效（${lp.error}），本轮不加登录浮层遮罩`);
+    } else if (lp) {
+      filters.push(`drawbox=x=${lp.x0}:y=${lp.y0}:w=${lp.x1 - lp.x0}:h=${lp.y1 - lp.y0}:color=${RECORD_MASK_COLOR}:t=fill`);
+      maskLog += `（登录浮层遮罩 ${lp.x0}:${lp.y0}→${lp.x1}:${lp.y1}）`;
+    }
+  }
+  const maskFilter = filters.join(',');
   const child = spawn(
     ffmpeg,
     [
@@ -190,7 +232,7 @@ async function startRecording() {
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
   log(
     `全程录像开始（E2E_RECORD=1）：DISPLAY=${X11_DISPLAY} → ${out}（pid=${state.pid}）` +
-      (mask ? `（QR 卡片遮罩 ${mask.x0}:${mask.y0}→${mask.x1}:${mask.y1}）` : ''),
+      (maskLog || ''),
   );
   return state;
 }
