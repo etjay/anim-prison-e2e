@@ -47,13 +47,10 @@ npm run e2e            # 单一入口：globalSetup 干净启 IDE → 跑 e2e/sm
   录像从 globalSetup 的 Xvfb 启动开始（覆盖 IDE 冷启 + 打开工程编译 + 全程测试），
   在 globalTeardown 杀 IDE 之前收尾；录屏失败（ffmpeg 缺失等）只警告、不阻断 suite。
   可选变量：`E2E_FFMPEG`（ffmpeg 路径，默认 PATH → `~/.local/bin` → `~/bin`）、
-  `E2E_RECORD_SIZE`（默认 `1280x800`，与 Xvfb 屏幕一致）、
-  `E2E_RECORD_MASK`（二维码悬浮卡片遮罩框 `X0:Y0:X1:Y1`，默认 `1005:135:1185:315`，
-  设 `none` 关闭；DevTools 社区移植版首屏编译后会弹固定「预览二维码」悬浮卡片遮罩
-  模拟器右上、直到录制结束，此为 ANIM-3 修复——在 ffmpeg x11grab 管道加 `drawbox`
-  对固定区域加不透明遮罩，对测试逻辑零影响；卡片位置在固定 1280×800 布局下确定，
-  IDE 版本漂移致移位时调大此框即可）。CI 上传 artifact 时与失败截图、
-  Jest JSON 一并上传（T3.1/T3.2 消费）。
+  `E2E_RECORD_SIZE`（默认 `1280x800`，与 Xvfb 屏幕一致）。
+  登录/授权浮层不再用 drawbox 遮罩掩盖（owner 已拍板「摘掉各种遮罩」），由
+  `e2e/tools/login-stub.js` 冷启前注入登录态根修保证浮层不出现。CI 上传 artifact
+  时与失败截图、Jest JSON 一并上传（T3.1/T3.2 消费）。
 - 耗时预算：全 suite（含 IDE 冷启动）~40s 量级（spike 实测单用例全流水线 ~39s）；
   单用例 Jest 超时 120s；
 - **DevTools 实例语义**：globalSetup 干净重启 IDE 一次；auto 隧道用**固定端口 9420**：
@@ -195,14 +192,8 @@ stub（openid `oe2estub…`，有效期 365 天）。写失败不阻断（打印
 - 验证当前登录态：`node -e "require('./e2e/tools/login-stub').readLoginState().then(s=>console.log(s))"`
   （IDE 须已停止，否则 leveldb 被锁）。
 
-**兑底遮罩（T3，`e2e/tools/record.js`，仅录像层）**：`E2E_RECORD=1` 时
-`E2E_RECORD_LOGIN_MASK`（默认 `auto`）在 x11grab 管道加第二块 `drawbox` 不透明遮罩：
-`auto` = 冷启前未登录（含 stub 写入）时开启，默认框 `430:40:830:205`
-（1280×800 布局下 AppID 对话框/登录浮层实测区域，预览区不受影响）；
-`none`/`0` 强制关；`X0:Y0:X1:Y1` 强制开指定区域。主修复生效（已登录）时
-auto 模式不开——此时仅可能残留 AppID 对话框（项目 `project.config.json`
-appid=`touristappid` 触发，属 IDE 对话框、不遮挡模拟器预览区，只影响录像观感；
-想盖住可显式 `E2E_RECORD_LOGIN_MASK=430:40:830:205`）。
+> 注：此前「兑底遮罩」（drawbox 录像遮罩）已按 owner 决策「摘掉各种遮罩」移除——
+> 登录/授权浮层不再靠 ffmpeg 遮罩掩盖，登录态由 login-stub 根修保证不出现。
 
 注意：stub 依赖 root `package.json` 的 `classic-level`（纯预编译、无 node-gyp），
 CI `npm ci` 即可；lazy require，不写 leveldb 时零原生模块开销。
