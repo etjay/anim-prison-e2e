@@ -16,8 +16,8 @@
 //      （登录态 stub 只能在 IDE 停止后写入）；
 //   2) seedLoginStub() 在冷启前执行：已登录则零干扰，未登录则注入 stub 登录态，
 //      使冷启动水合出已登录用户、未登录浮层不出现（主修复，e2e/tools/login-stub.js）；
-//   3) startRecording 此时才启动（X socket 已就绪）：未登录态（含 stub 写入）时
-//      追加登录浮层 ffmpeg drawbox 兜底遮罩（T3，遮罩主开关见 e2e/tools/record.js）。
+//   3) startRecording 此时才启动（X socket 已就绪）：直接录屏，不再加 ffmpeg drawbox
+//      遮罩（owner 已拍板「摘掉各种遮罩」，登录态由 login-stub 根修保证不出现浮层）。
 const { stopAllIde, ensureX11Display, ensureIde } = require('./tools/ensure-devtools');
 const { startRecording } = require('./tools/record');
 const { seedLoginStub } = require('./tools/login-stub');
@@ -25,7 +25,7 @@ const { seedLoginStub } = require('./tools/login-stub');
 module.exports = async function globalSetup() {
   stopAllIde();
   ensureX11Display();
-  const stub = await seedLoginStub();
-  await startRecording({ loginMask: !stub.loggedInBefore });
+  await seedLoginStub();
+  await startRecording();
   ensureIde();
 };
