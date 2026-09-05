@@ -12,7 +12,7 @@
 //   E2E_QR_NOQP     任意非空值跳过本模块（临时关闭，供测试/排障）
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 
 const PY = path.join(__dirname, 'close-qr.py');
 
@@ -20,40 +20,28 @@ function log(...a) {
   console.log('[close-qr]', ...a);
 }
 
-// 返回 { ok, closed, hit, count };失败/未启用返回 { skipped: true }。
+// 后台 spawn python 做「等卡片出现→点关闭→确认」。globalSetup 里调用不阻塞：
+// 卡片在测试启动 App 之后才弹出，故本进程需与测试并行轮询。detached + stdio inherit
+// → 输出直通 CI 日志（此前 spawnSync 吞掉诊断导致 blind 运行）。best-effort，失败不阻断套件。
 function closeLoginWindow() {
   if (process.env.E2E_QR_NOQP) {
     log('E2E_QR_NOQP 已设，跳过关闭浮窗');
     return { skipped: true };
   }
   const action = process.env.E2E_QR_ACTION || 'close';
-  let py = null;
   try {
-    py = spawnSync(
-      'python3',
-      [PY, '--' + action],
-      { env: { ...process.env }, encoding: 'utf8', timeout: 60000 },
-    );
+    const child = spawn('python3', [PY, '--' + action], {
+      env: { ...process.env },
+      stdio: 'inherit',
+      detached: true,
+    });
+    child.unref();
+    log(`已后台启动 close-qr（${action}，pid=${child.pid}）—— 不阻塞 globalSetup，与测试并行`);
+    return { spawned: true, pid: child.pid };
   } catch (e) {
     log('spawn python 失败：', e);
     return { skipped: true, error: String(e) };
   }
-  if (py.status !== 0) {
-    log(`${action} 异常退出 code=${py.status}（不阻断）`);
-    if (py.stderr) log(py.stderr);
-    return { ok: false };
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(py.stdout);
-  } catch (_) {
-    log('未拿到 JSON（不阻断）：', py.stdout && py.stdout.slice(-300));
-    return { ok: false };
-  }
-  if (parsed && parsed.ok) {
-    log(`浮窗 ${action}：${parsed.closed ? '已关闭' : '未关闭'} — ${parsed.detail || ''}`);
-  }
-  return parsed;
 }
 
 module.exports = { closeLoginWindow };
