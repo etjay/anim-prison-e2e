@@ -155,75 +155,66 @@ def main():
         if shot_dir:
             os.makedirs(shot_dir, exist_ok=True)
 
-        # 1) 轮询等卡片出现（区域亮度升到 threshold=亮色卡片）
+        x, y = parse_xy()
         t0 = time.time()
-        base_bright = region_brightness(d, root)
-        log('初始卡片区域亮度=%.1f' % base_bright)
-        appeared = False
-        cur = base_bright
+        closes = 0
+        saved_before = False
+        saved_after = False
+        first_seen = None
+        last_was_card = False
+
+        log('清道夫循环启动：每 %.1fs 检测卡片（阈值=%.0f），上限 %.0fs，关闭钮=(%d,%d)' % (
+            poll, appear, wait_max, x, y))
         while time.time() - t0 < wait_max:
             cur = region_brightness(d, root)
             if cur >= appear:
-                appeared = True
-                break
-            time.sleep(poll)
-        log('等待 %.1fs → 卡片%s（区域亮度=%.1f，阈值=%.0f）' % (
-            time.time() - t0, '已出现' if appeared else '未出现', cur, appear))
-
-        if dryrun:
-            ok = True
-            detail.append('dryrun（未点击），卡片出现=%s' % appeared)
-            if shot_dir:
-                save_shot(d, root, os.path.join(shot_dir, 'qr.dryrun.ppm'))
-            print(json.dumps({'ok': True, 'closed': False,
-                              'detail': ' | '.join(detail), 'appeared': appeared}))
-            return
-
-        if not appeared:
-            ok = True
-            detail.append('90s 内卡片未出现（可能本轮未弹，无需关闭）')
-            print(json.dumps({'ok': True, 'closed': False, 'detail': ' | '.join(detail)}))
-            return
-
-        x, y = parse_xy()
-        if shot_dir:
-            save_shot(d, root, os.path.join(shot_dir, 'qr-before.ppm'))
-        before = region_brightness(d, root)
-        log('卡片出现，开始关闭：点击前亮度=%.1f，默认钮=(%d,%d)' % (before, x, y))
-
-        # 关闭策略（每招后用亮度判定，成功即停）：Esc → 点击候选关闭位(含默认钮+邻近点)。
-        # 候选：默认钮、其右、其上、再向右下，覆盖卡片右上角一带可能的 X 位置。
-        attempts = [('esc', None)]
-        for dx, dy in [(0, 0), (10, 0), (0, -10), (20, 8), (-30, 4)]:
-            attempts.append(('click', (x + dx, y + dy)))
-
-        closed = False
-        for i, (kind, pt) in enumerate(attempts):
-            if kind == 'esc':
-                press_escape(d)
-                log('Esc 后亮度=%.1f' % region_brightness(d, root))
+                if first_seen is None:
+                    first_seen = time.time() - t0
+                    log('首次检测到卡片：%.1fs（亮度=%.1f）' % (first_seen, cur))
+                    if shot_dir and not saved_before:
+                        save_shot(d, root, os.path.join(shot_dir, 'qr-before.ppm'))
+                        saved_before = True
+                # 卡片在场：尝试关闭（连续点最多 retry 次，直到亮度下降）
+                closed_now = False
+                if dryrun:
+                    log('dryrun：发现卡片但未点击（%.1fs）' % (time.time() - t0))
+                else:
+                    tx, ty = x, y
+                    before_click = region_brightness(d, root)
+                    for at in range(retry):
+                        click_xy(d, tx, ty)
+                        time.sleep(0.7)
+                        after_click = region_brightness(d, root)
+                        if after_click < before_click - 15:
+                            closes += 1
+                            closed_now = True
+                            log('第%d次关闭成功（%.1fs，亮度 %.1f→%.1f）@(%d,%d)' % (
+                                closes, time.time() - t0, before_click, after_click, tx, ty))
+                            if shot_dir and not saved_after:
+                                save_shot(d, root, os.path.join(shot_dir, 'qr-after.ppm'))
+                                saved_after = True
+                            break
+                        tx += 6
+                        ty += 6
+                last_was_card = closed_now
             else:
-                click_xy(d, pt[0], pt[1])
-                log('点击 %s 后亮度=%.1f' % (pt, region_brightness(d, root)))
-            time.sleep(0.7)
-            after = region_brightness(d, root)
-            if after < before - 15:
-                closed = True
-                detail.append('第%d招(%s%s)关闭成功（亮度 %.1f→%.1f）' % (
-                    i + 1, kind, (' ' + str(pt)) if pt else '', before, after))
-                break
-        if not closed:
-            detail.append('全部策略后亮度未明显下降（%.1f→%.1f），浮层可能无对应关闭钮' % (
-                before, region_brightness(d, root)))
+                if last_was_card:
+                    log('卡片已消失（%.1fs，亮度=%.1f）' % (time.time() - t0, cur))
+                last_was_card = False
+            if not dryrun:
+                time.sleep(poll)
 
-        if shot_dir:
+        log('清道夫结束：共关闭卡片 %d 次（共 %.1fs，首次出现 %.1fs）' % (
+            closes, time.time() - t0, first_seen if first_seen is not None else -1))
+        if shot_dir and saved_before and not saved_after:
             save_shot(d, root, os.path.join(shot_dir, 'qr-after.ppm'))
         ok = True
     except Exception as e:
         detail.append('异常: %s' % e)
         log(detail[-1])
 
-    print(json.dumps({'ok': ok, 'closed': closed, 'detail': ' | '.join(detail)}))
+    print(json.dumps({'ok': ok, 'closed': closes > 0, 'closes': closes,
+                      'detail': ' | '.join(detail)}))
 
 
 if __name__ == '__main__':
