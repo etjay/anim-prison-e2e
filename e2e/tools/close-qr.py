@@ -24,6 +24,11 @@ import os
 import sys
 import time
 
+# python-xlib get_image 签名：(x, y, width, height, format, plane_mask)
+# format=2(ZPixmap)、plane_mask=0xffffffff(全部颜色平面)。缺 plane_mask 会抛 TypeError。
+_IMG_FORMAT = 2          # ZPixmap
+_IMG_PLANE_MASK = 0xffffffff
+
 REGION = (1005, 135, 1185, 315)
 DEFAULT_CLOSE_XY = (1162, 152)
 DEFAULT_APPEAR = 120
@@ -54,17 +59,22 @@ def parse_xy():
 def region_brightness(d, root, box=REGION):
     x0, y0, x1, y1 = box
     try:
-        raw = root.get_image(x0, y0, x1 - x0, y1 - y0, 0xffffffff)
+        raw = root.get_image(x0, y0, x1 - x0, y1 - y0, _IMG_FORMAT, _IMG_PLANE_MASK)
         data = raw.data
         if not data:
             return -1
-        step = 4
+        bpp = getattr(raw, 'bits_per_pixel', 32) or 32
+        nbytes = bpp // 8
+        step = max(nbytes, 1)
         total = 0.0
         n = 0
-        for i in range(0, len(data) - 3, step):
-            b = data[i]
-            g = data[i + 1]
+        # 每像素取 RGB 三通道求和；bpp=32 时含 1 字节 alpha 填充，跳 step 读前 3 字节
+        for i in range(0, len(data) - step, step):
+            if i + 2 >= len(data):
+                break
             r = data[i + 2]
+            g = data[i + 1]
+            b = data[i]
             total += (r + g + b) / 3.0
             n += 1
         return total / n if n else -1
@@ -75,10 +85,21 @@ def region_brightness(d, root, box=REGION):
 
 def save_shot(d, root, path, w=1280, h=800):
     try:
-        raw = root.get_image(0, 0, w, h, 0xffffffff)
+        raw = root.get_image(0, 0, w, h, _IMG_FORMAT, _IMG_PLANE_MASK)
+        data = raw.data
+        bpp = getattr(raw, 'bits_per_pixel', 32) or 32
+        stride = getattr(raw, 'bytes_per_line', w * (bpp // 8)) or w * (bpp // 8)
+        nbytes = bpp // 8
         with open(path, 'wb') as f:
             f.write(b'P6\n%d %d\n255\n' % (w, h))
-            f.write(raw.data)
+            # 逐行拷贝 RGB（去掉可能的行填充），P6 每像素 3 字节
+            for row in range(h):
+                base = row * stride
+                for col in range(w):
+                    off = base + col * nbytes
+                    if off + 2 >= len(data):
+                        break
+                    f.write(bytes((data[off + 2], data[off + 1], data[off])))
         log('已存截图：', path)
         return path
     except Exception as e:
