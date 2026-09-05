@@ -174,3 +174,35 @@ test('邀请码绑定后进入首页', async () => {
 - **失败截图**：`e2e/screenshots/auto-*.png`（每条用例后状态；CI 作 job artifact 上传）；
 - **日志**：`[ensure-devtools]`（环境）、`[e2e]`（运行时）前缀可过滤；
 - **spike 回归**：`npm run e2e:spike`（最小工程全循环，独立于本框架）。
+
+## 7. 登录态与浮层（ANIM-25）
+
+DevTools 冷启后未登录时，预览/编辑器区会弹登录/授权浮层（本项目表现为
+「更改 AppID 失败 (touristappid) / Error: tourist appid」对话框 + 登录扫码浮层，
+IDE 每 2s 轮询登录态直到登录）。修复分两层，均在 e2e/ 域内：
+
+**主修复（T2，`e2e/tools/login-stub.js`，globalSetup 自动执行）**：
+IDE 停止后、冷启前，向 DevTools 的 Chromium Local Storage leveldb
+（`~/.config/wechat-devtools/Default/Local Storage/leveldb/`）预注入一份「已登录」
+状态（`userInfo_*` + `reduxPersist:user`，值编码 `0x01`=UTF-8 / `0x00`=UTF-16LE，
+key = `<origin>\x00\x01<key>`，origin 动态发现 + 默认值兜底）。幂等：
+已有有效登录态（SUCCESS 且签名有效期 > now+24h）则零写入；未登录/过期/全新机器则写入
+stub（openid `oe2estub…`，有效期 365 天）。写失败不阻断（打印 `[login-stub]` 警告，
+降级到 T3 遮罩）。
+
+- `WDT_LOGIN_STUB`：`auto`（默认，缺登录态才写）/ `0`（只读不写，排障对比）/ `force`（无条件重写）；
+- `WDT_LS_DIR` / `WDT_LS_ORIGIN`：leveldb 目录与 origin 前缀覆盖（版本漂移时）；
+- 验证当前登录态：`node -e "require('./e2e/tools/login-stub').readLoginState().then(s=>console.log(s))"`
+  （IDE 须已停止，否则 leveldb 被锁）。
+
+**兑底遮罩（T3，`e2e/tools/record.js`，仅录像层）**：`E2E_RECORD=1` 时
+`E2E_RECORD_LOGIN_MASK`（默认 `auto`）在 x11grab 管道加第二块 `drawbox` 不透明遮罩：
+`auto` = 冷启前未登录（含 stub 写入）时开启，默认框 `430:40:830:205`
+（1280×800 布局下 AppID 对话框/登录浮层实测区域，预览区不受影响）；
+`none`/`0` 强制关；`X0:Y0:X1:Y1` 强制开指定区域。主修复生效（已登录）时
+auto 模式不开——此时仅可能残留 AppID 对话框（项目 `project.config.json`
+appid=`touristappid` 触发，属 IDE 对话框、不遮挡模拟器预览区，只影响录像观感；
+想盖住可显式 `E2E_RECORD_LOGIN_MASK=430:40:830:205`）。
+
+注意：stub 依赖 root `package.json` 的 `classic-level`（纯预编译、无 node-gyp），
+CI `npm ci` 即可；lazy require，不写 leveldb 时零原生模块开销。
