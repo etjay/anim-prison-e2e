@@ -108,17 +108,33 @@ def save_shot(d, root, path, w=1280, h=800):
 
 
 def click_xy(d, x, y):
+    from Xlib import X
     from Xlib.ext import xtest
     root = d.screen().root
     root.warp_pointer(x, y)
     d.sync()
     time.sleep(0.15)
-    xtest.fake_input(d, 1, 1)
+    xtest.fake_input(d, X.ButtonPress, 1)
     d.sync()
     time.sleep(0.08)
-    xtest.fake_input(d, 1, 0)
+    xtest.fake_input(d, X.ButtonRelease, 1)
     d.sync()
     log('已点击 (%d,%d)' % (x, y))
+
+
+def press_escape(d):
+    from Xlib import X, XK
+    from Xlib.ext import xtest
+    kc = d.keysym_to_keycode(XK.XK_Escape)
+    if not kc:
+        log('未映射 Escape 键码，跳过 Esc')
+        return
+    xtest.fake_input(d, X.KeyPress, kc)
+    d.sync()
+    time.sleep(0.08)
+    xtest.fake_input(d, X.KeyRelease, kc)
+    d.sync()
+    log('已发送 Esc')
 
 
 def main():
@@ -173,24 +189,32 @@ def main():
         if shot_dir:
             save_shot(d, root, os.path.join(shot_dir, 'qr-before.ppm'))
         before = region_brightness(d, root)
-        log('卡片出现，点击关闭钮 (%d,%d)，点击前亮度=%.1f' % (x, y, before))
+        log('卡片出现，开始关闭：点击前亮度=%.1f，默认钮=(%d,%d)' % (before, x, y))
 
-        # 2) 点击并确认（亮度显著下降=关掉）
-        for attempt in range(1, retry + 1):
-            click_xy(d, x, y)
-            time.sleep(0.8)
+        # 关闭策略（每招后用亮度判定，成功即停）：Esc → 点击候选关闭位(含默认钮+邻近点)。
+        # 候选：默认钮、其右、其上、再向右下，覆盖卡片右上角一带可能的 X 位置。
+        attempts = [('esc', None)]
+        for dx, dy in [(0, 0), (10, 0), (0, -10), (20, 8), (-30, 4)]:
+            attempts.append(('click', (x + dx, y + dy)))
+
+        closed = False
+        for i, (kind, pt) in enumerate(attempts):
+            if kind == 'esc':
+                press_escape(d)
+                log('Esc 后亮度=%.1f' % region_brightness(d, root))
+            else:
+                click_xy(d, pt[0], pt[1])
+                log('点击 %s 后亮度=%.1f' % (pt, region_brightness(d, root)))
+            time.sleep(0.7)
             after = region_brightness(d, root)
-            log('第 %d 次点击后亮度=%.1f' % (attempt, after))
             if after < before - 15:
                 closed = True
-                detail.append('第%d次点击后关闭成功（亮度 %.1f→%.1f）' % (attempt, before, after))
+                detail.append('第%d招(%s%s)关闭成功（亮度 %.1f→%.1f）' % (
+                    i + 1, kind, (' ' + str(pt)) if pt else '', before, after))
                 break
-            # 微调坐标右移下移再试（关闭钮可能略偏）
-            x += 6
-            y += 6
         if not closed:
-            detail.append('点击 %d 次后亮度未明显下降（%.1f→%.1f），卡片可能未识别到关闭钮' % (
-                retry, before, region_brightness(d, root)))
+            detail.append('全部策略后亮度未明显下降（%.1f→%.1f），浮层可能无对应关闭钮' % (
+                before, region_brightness(d, root)))
 
         if shot_dir:
             save_shot(d, root, os.path.join(shot_dir, 'qr-after.ppm'))
