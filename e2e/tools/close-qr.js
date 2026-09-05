@@ -51,7 +51,7 @@ function closeLoginWindow() {
     return { ok: false };
   }
   if (parsed && parsed.ok) {
-    log(`浮窗处理 ${action}：窗口 ${parsed.count} 个，登录相关 ${parsed.hit} 个，已关闭 ${(parsed.closed || []).length} 个`);
+    log(`浮窗 ${action}：${parsed.closed ? '已关闭' : '未关闭'} — ${parsed.detail || ''}`);
   }
   return parsed;
 }

@@ -186,6 +186,8 @@ jobs:
       - name: Run E2E (with full screen recording)
         env:
           E2E_RECORD: "1"
+          # close-qr（ANIM-25）：等卡片弹出后点关闭钮，并存点击前后截图产物供回看校准。
+          E2E_QR_SHOT_DIR: "e2e/artifacts/qr-shots"
         run: |
           # 注：上一步预热已焐热 on-disk 编译缓存，本步冷启 IDE 后重编译走热缓存，
           #   waitForAppReady（30s 硬上限）在冷机上也应秒过；若仍超时见 e2e-prewarm 日志。

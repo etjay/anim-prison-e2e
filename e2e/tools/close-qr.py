@@ -1,173 +1,174 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# close-qr — 关闭开发者工具启动后弹出的登录/授权/二维码浮层窗口（ANIM-25）。
+# close-qr（ANIM-25，v2）—— 关闭模拟器右上角弹出的「预览二维码」悬浮卡片。
 #
-# 背景：DevTools（nw/Chromium）未登录时冷启会在预览区上弹登录/授权浮层，遮挡小程序界面。
-#       自动化（automator/CLI）无关闭该浮层的 API；故用 python-xlib 直接对 X :97 上的窗口
-#       做诊断 + 关闭（WM_DELETE_WINDOW 协议 / 鼠标点击右上角关闭钮兜底）。
-#       本地无法起 DevTools，本轮先做「窗口树诊断 + 温和关闭」，把实际窗口标题/类名/pid
-#       打出来（CI 日志可见），供下一轮精准定位。
+# 背景（v1 教训）：登录浮窗不是独立系统窗口，而是 DevTools 模拟器内部由 redux
+#   WINDOW_SET_PREVIEW_COMPONENT 弹出的 in-simulator 卡片（1280×800 布局下约 x1005-1185,
+#   y135-315）。v1 用 X 窗口管理去 close 会把整个 DevTools 主窗口关掉 → 全黑屏、测试全挂。
+#   故 v2 彻底改为「坐标点击卡片关闭钮」，且绝不操作主窗口/根窗口的关闭。
 #
-# 用法：DISPLAY=:97 python3 close-qr.py [--close|--diag]
-#   --close   诊断并尝试关闭登录相关窗口（默认）
-#   --diag    只列出窗口树，不关闭（安全模式，先摸清结构）
+# 目标窗口确认（只用来定位、绝不低于关闭）：我们在窗口中仅读取几何与名称，确认
+# DevTools 已就绪；关闭动作只作用于卡片上的关闭钮相对坐标（root 屏幕坐标）。
 #
-# 行为约定：任何异常都不抛、不阻断测试（录屏清除是 best-effort，失败不 fail suite）。
-# 输出：JSON 到 stdout，供 Node 侧 parent 读取判定。
-
+# 行为约定：
+#   - best-effort、非致命：失败只打日志，不影响测试套件（与 record.js 一致）。
+#   - 日志全部走 stderr；stdout 只输出最终 JSON（给 Node 父进程解析）。
+#   - 默认坐标点击（xtest 鼠标左键）；可用 E2E_QR_CLOSE_XY=x:y 覆盖关闭钮屏幕坐标。
+#
+# 用法：DISPLAY=:97 python3 close-qr.py
+#   E2E_QR_CLOSE_XY  关闭钮屏幕坐标（默认 1162:152，卡片右上角 X）
+#   E2E_QR_DELAY      等卡片弹出的秒数（默认 6，先等首屏编译热缓存、卡片出现）
+#   E2E_QR_SHOT_DIR   把点击前后截图存到该目录（默认不存；CI 可设 e2e/artifacts 供回看）
+#   E2E_QR_DRYRUN=1   只截图不点击（安全摸卡片位置）
 import json
 import os
 import sys
+import time
+import struct
 
-LINE = '=' * 60
+DEFAULT_CLOSE_XY = (1162, 152)   # 卡片右上角关闭钮（卡片区域 x1005-1185, y135-315）
+DEFAULT_DELAY = 6.0
+
 
 def log(*a):
-    print('[close-qr]', *a, flush=True)
+    print('[close-qr]', *a, file=sys.stderr, flush=True)
+
 
 def get_display():
     return os.environ.get('WDT_DISPLAY', ':97')
 
-def main():
-    mode = 'close'
-    for a in sys.argv[1:]:
-        if a == '--diag':
-            mode = 'diag'
-        elif a == '--close':
-            mode = 'close'
 
+def parse_xy():
+    v = os.environ.get('E2E_QR_CLOSE_XY')
+    if v and ':' in v:
+        try:
+            x, y = v.split(':')
+            return (int(x), int(y))
+        except Exception:
+            log('E2E_QR_CLOSE_XY 无效，用默认：', v)
+    return DEFAULT_CLOSE_XY
+
+
+def region_brightness(d, root, x0=1005, y0=135, x1=1185, y1=315):
+    """对卡片区域采一点像素算平均亮度，粗略判断卡片(亮)是否还在。"""
     try:
-        from Xlib import display as xdisplay, X, protocol
-        from Xlib.error import XError
+        raw = root.get_image(x0, y0, x1 - x0, y1 - y0, 0xffffffff)
+        data = raw.data
+        if not data:
+            return -1
+        # 每像素取 RGB 前若干字节求和取平均
+        step = 4  # 假定 32bpp；采样间隔降开销
+        vals = []
+        for i in range(0, len(data), step):
+            b = data[i]
+            g = data[i + 1] if i + 1 < len(data) else 0
+            r = data[i + 2] if i + 2 < len(data) else 0
+            vals.append((r + g + b) / 3.0)
+        return sum(vals) / len(vals) if vals else -1
     except Exception as e:
-        log('python-xlib 不可用：', e)
-        print(json.dumps({'ok': False, 'error': 'no-xlib'}))
-        return
+        log('采样亮度失败（跳过）：', e)
+        return -1
 
+
+def save_shot(d, root, path, w=1280, h=800):
     try:
-        d = xdisplay.Display(get_display())
+        raw = root.get_image(0, 0, w, h, 0xffffffff)
+        data = raw.data
+        # 转 PPM（P6）再交给 ffmpeg/convert 或直接丢 png 需要 PIL；这里落 PPM，CI 上可读。
+        with open(path, 'wb') as f:
+            f.write(b'P6\n%d %d\n255\n' % (w, h))
+            f.write(data)
+        log('已存截图：', path)
+        return path
     except Exception as e:
-        log('连接显示失败：', e)
-        print(json.dumps({'ok': False, 'error': 'display'}))
-        return
-
-    root = d.screen().root
-
-    def wm_name(w):
-        try:
-            return w.get_wm_name()
-        except Exception:
-            return None
-
-    def wm_class(w):
-        try:
-            r = w.get_wm_class()
-            return list(r) if r else None
-        except Exception:
-            return None
-
-    def wm_pid(w):
-        try:
-            prop = w.get_full_property(d.intern_atom('_NET_WM_PID'), X.AnyPropertyType)
-            if prop and prop.value:
-                return int(prop.value)
-        except Exception:
-            pass
+        log('存截图失败：', e)
         return None
 
-    KW = ['登录', 'login', '授权', 'author', '二维码', 'qr', '扫一扫', 'scan', 'wechat', '微信']
 
-    found = []          # 全部顶层窗口（诊断用）
-    candidates = []     # 命中登录关键词的窗口（待关闭）
-    seq = 0
+def click_xy(d, root, x, y):
+    from Xlib.ext import xtest
+    root.warp_pointer(x, y)
+    d.sync()
+    time.sleep(0.15)
+    xtest.fake_input(d, 1, 1)   # ButtonPress
+    d.sync()
+    time.sleep(0.08)
+    xtest.fake_input(d, 1, 0)   # ButtonRelease
+    d.sync()
 
-    def walk(w, depth=0):
-        nonlocal seq
-        try:
-            children = w.query_tree().children
-        except Exception:
-            return
-        for c in children:
-            seq += 1
-            title = wm_name(c)
-            cls = wm_class(c)
-            pid = wm_pid(c)
-            rec = {
-                'seq': seq, 'depth': depth, 'id': hex(c.id),
-                'title': title, 'class': cls, 'pid': pid,
-            }
-            joined = ' '.join([str(title or ''), str(cls or '')]).lower()
-            if any(k in joined for k in KW):
-                rec['hit'] = KW[:]
-                candidates.append(rec)
-            found.append(rec)
-            walk(c, depth + 1)
 
+def find_devtools_window(d, root):
+    """返回 DevTools 主窗口（class wechat-devtools），只用于确认就绪，绝不关闭。"""
     try:
-        walk(root)
+        def walk(w):
+            for c in w.query_tree().children:
+                try:
+                    cls = c.get_wm_class()
+                    if cls and 'wechat-devtools' in cls[0].lower():
+                        return c
+                except Exception:
+                    pass
+                r = walk(c)
+                if r is not None:
+                    return r
+            return None
+        return walk(root)
+    except Exception:
+        return None
+
+
+def main():
+    ok = False
+    closed = False
+    detail = ''
+    try:
+        from Xlib import display as xdisplay
+        d = xdisplay.Display(get_display())
+        root = d.screen().root
+
+        dev_win = find_devtools_window(d, root)
+        if dev_win is None:
+            detail = '未找到 DevTools 主窗口（可能尚未就绪）'
+            log(detail)
+        else:
+            detail = 'DevTools 主窗口就绪'
+
+        delay = float(os.environ.get('E2E_QR_DELAY', DEFAULT_DELAY))
+        log('等待 %.1fs 让卡片弹出（E2E_QR_DELAY）...' % delay)
+        time.sleep(delay)
+
+        shot_dir = os.environ.get('E2E_QR_SHOT_DIR')
+        if shot_dir:
+            os.makedirs(shot_dir, exist_ok=True)
+
+        x, y = parse_xy()
+        before = region_brightness(d, root)
+        log('卡片区域亮度(点击前)=%.1f，关闭钮目标=(%d,%d)' % (before, x, y))
+        if shot_dir:
+            save_shot(d, root, os.path.join(shot_dir, 'qr-before.ppm'))
+
+        if os.environ.get('E2E_QR_DRYRUN') == '1':
+            detail += '（dry-run 未点击）'
+        else:
+            click_xy(d, root, x, y)
+            time.sleep(0.6)
+            after = region_brightness(d, root)
+            log('卡片区域亮度(点击后)=%.1f' % after)
+            if shot_dir:
+                save_shot(d, root, os.path.join(shot_dir, 'qr-after.ppm'))
+            # 判定：卡片为亮色，区域亮度显著下降 → 判定关闭成功
+            if before >= 0 and after >= 0 and after < before - 15:
+                closed = True
+                detail += ' | 卡片已关闭（亮度下降）'
+            else:
+                detail += ' | 点击完成（亮度未明显变化，卡片可能未出现/位置需校准）'
+        ok = True
     except Exception as e:
-        log('窗口遍历异常（继续）：', e)
+        detail = '异常: %s' % e
+        log(detail)
 
-    log('窗口树上共 %d 个窗口，登录相关命中 %d 个' % (len(found), len(candidates)))
-    for rec in found:
-        log('  depth=%d id=%s title=%r class=%s pid=%s' % (
-            rec['depth'], rec['id'], rec.get('title'), rec.get('class'), rec.get('pid')))
+    print(json.dumps({'ok': ok, 'closed': closed, 'detail': detail}))
 
-    if mode == 'diag':
-        print(json.dumps({'ok': True, 'mode': mode, 'count': len(found), 'hit': candidates}))
-        return
-
-    # ---- 关闭阶段 ----
-    closed = []
-    failed = []
-    for rec in candidates:
-        try:
-            w = d.create_resource_object('window', int(rec['id'], 16))
-        except Exception as e:
-            failed.append({'id': rec['id'], 'error': str(e)})
-            continue
-        # 办法1：WM_DELETE_WINDOW 协议请求窗口自行关闭
-        wm_delete = d.intern_atom('WM_PROTOCOLS')
-        wm_del_win = d.intern_atom('WM_DELETE_WINDOW')
-        try:
-            wm_props = []
-            err = w.get_full_property(wm_delete, X.AnyPropertyType)
-            if err and err.value:
-                wm_props = list(err.value)
-            if wm_del_win in wm_props:
-                ev = protocol.event.ClientMessage(
-                    window=w, client_type=wm_delete,
-                    data=(32, [wm_del_win, X.CurrentTime, 0, 0, 0]))
-                w.send_event(ev)
-                d.flush()
-                closed.append({'id': rec['id'], 'method': 'wm_delete', 'title': rec.get('title')})
-                log('已请求关闭（wm_delete）：id=%s title=%r' % (rec['id'], rec.get('title')))
-                continue
-        except Exception as e:
-            failed.append({'id': rec['id'], 'step': 'wm_delete', 'error': str(e)})
-        # 办法2（默认关闭）：像素点击右上角关闭钮。依赖精确坐标+时序、有误点模拟器风险，
-        #   故仅当 E2E_QR_CLICK=1 时启用，否则跳过（record.js 已警告此风险）。
-        if os.environ.get('E2E_QR_CLICK') != '1':
-            failed.append({'id': rec['id'], 'step': 'click_close', 'error': 'disabled (set E2E_QR_CLICK=1)'})
-            continue
-        try:
-            geo = w.get_geometry()
-            x, y = geo.width - 12, 12
-            root.warp_pointer(x + geo.x, y + geo.y)
-            d.sync()
-            # 模拟左键按下/抬起
-            from Xlib.ext import xtest
-            xtest.fake_input(d, X.ButtonPress, 1)
-            d.sync()
-            xtest.fake_input(d, X.ButtonRelease, 1)
-            d.sync()
-            closed.append({'id': rec['id'], 'method': 'click_close', 'title': rec.get('title')})
-            log('已点击关闭钮：id=%s title=%r @(%d,%d)' % (rec['id'], rec.get('title'), x, y))
-        except Exception as e:
-            failed.append({'id': rec['id'], 'step': 'click_close', 'error': str(e)})
-            log('关闭失败 id=%s：%s' % (rec['id'], e))
-
-    print(json.dumps({'ok': True, 'mode': mode, 'count': len(found), 'hit': len(candidates),
-                      'closed': closed, 'failed': failed}))
 
 if __name__ == '__main__':
     main()
